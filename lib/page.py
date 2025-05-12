@@ -48,7 +48,10 @@ class Page:
 		self.processing_time = None
 		t1 = time.time_ns()
 
-		self.img = cv.imread(filename)
+		# Lidando com caminhos de arquivos com caracteres especiais, como acentos
+		file_bytes = np.fromfile(filename, dtype=np.uint8) # ler o arquivo como binário
+		self.img = cv.imdecode(file_bytes, cv.IMREAD_COLOR) # decodifica
+
 		if not isinstance(self.img, np.ndarray) or self.img.size == 0:
 			raise NotAnImageException(f"File {filename} is not an image")
 
