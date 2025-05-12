@@ -116,7 +116,7 @@ infos = json.dumps(infos)
 
 # Generate HTML
 if args.html or args.browser or args.html_static_dir or args.debug:
-	images_dir = 'urls' if folder == 'urls' else os.path.relpath(folder, 'tests/results') + '/'
+	images_dir = 'urls' if folder == 'urls' else os.path.abspath(folder) + '/'
 	reldir = args.html_static_dir[0] if args.html_static_dir else '../../'
 
 	html = ''
