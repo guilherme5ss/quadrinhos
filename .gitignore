@@ -2,3 +2,9 @@ __pycache__
 *.pyc
 tests/*.html
 tests/results/*
+venv/
+*.code-workspace
+pages/
+html/
+json/
+tests/testes
