@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Painéis de Quadrinhos</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <h1>Editor de Painéis de Quadrinhos</h1>
+        
+        <div class="controls">
+            <input type="file" id="json-input" accept=".json">
+            <input type="file" id="image-input" accept="image/*" multiple>
+            <button id="save-btn">Salvar JSON</button>
+            <label>
+                <input type="checkbox" id="rtl-checkbox"> Ordem direita-para-esquerda (RTL)
+            </label>
+        </div>
+        
+        <div class="editor-container">
+            <div class="image-container">
+                <canvas id="comic-canvas"></canvas>
+            </div>
+            
+            <div class="panel-list">
+                <h3>Painéis</h3>
+                <ul id="panels-list"></ul>
+                <button id="add-panel-btn">Adicionar Painel</button>
+            </div>
+            
+            <div class="panel-properties">
+                <h3>Propriedades do Painel</h3>
+                <div id="properties-form">
+                    <p>Selecione um painel para editar</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
