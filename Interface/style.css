@@ -268,12 +268,23 @@ body {
   
   /* ... (mantenha o restante dos estilos anteriores) ... */
   /* Efeito de blur */
-  .blur-effect {
-    filter: blur(8px);
-    transition: filter 0.3s ease;
-  }
   
   /* Destaque para o botão ativo */
+  #blur-mode-btn {
+    background-color: #9c27b0;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 10px;
+    transition: all 0.3s ease;
+  }
+  
+  #blur-mode-btn:hover {
+    background-color: #7b1fa2;
+  }
+  
   #blur-mode-btn.active {
     background-color: #7b1fa2;
     box-shadow: 0 0 0 2px #e1bee7;

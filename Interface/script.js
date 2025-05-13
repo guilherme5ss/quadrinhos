@@ -170,42 +170,64 @@ document.addEventListener("DOMContentLoaded", function () {
       const pageData = state.comicData[state.currentPageIndex];
       const img = state.images[state.currentPageIndex];
   
+      // Configurar canvas
       elements.canvas.width = pageData.size[0];
       elements.canvas.height = pageData.size[1];
   
-      // Aplicar blur se necessário
-      if (state.isBlurMode) {
-        ctx.filter = "blur(8px)";
-      } else {
-        ctx.filter = "none";
-      }
-  
+      // Desenhar a imagem original
       ctx.drawImage(img, 0, 0, elements.canvas.width, elements.canvas.height);
   
-      const panels = pageData.panels;
-      for (let i = 0; i < panels.length; i++) {
-        const panel = panels[i];
+      // Se o modo blur estiver ativo, aplicar blur apenas nos painéis
+      if (state.isBlurMode) {
+        // Criar um canvas temporário para o efeito de blur
+        const tempCanvas = document.createElement("canvas");
+        tempCanvas.width = elements.canvas.width;
+        tempCanvas.height = elements.canvas.height;
+        const tempCtx = tempCanvas.getContext("2d");
   
-        // Estilo diferente para cada estado
-        if (i === state.selectedPanelIndex) {
-          ctx.strokeStyle = "#FF0000"; // Vermelho para seleção única
-          ctx.lineWidth = 4;
-        } else if (state.selectedPanelsForMerge.includes(i)) {
-          ctx.strokeStyle = "#FF8C00"; // Laranja para merge
-          ctx.lineWidth = 4;
-        } else {
-          ctx.strokeStyle = "#00FF00"; // Verde padrão
-          ctx.lineWidth = 2;
-        }
+        // Desenhar a imagem com blur no canvas temporário
+        tempCtx.filter = "blur(8px)";
+        tempCtx.drawImage(
+          img,
+          0,
+          0,
+          elements.canvas.width,
+          elements.canvas.height
+        );
+        tempCtx.filter = "none";
   
+        // Para cada painel, recortar a área borrada do canvas temporário
+        pageData.panels.forEach((panel) => {
+          ctx.save();
+          // Recortar a área do painel
+          ctx.beginPath();
+          ctx.rect(panel[0], panel[1], panel[2], panel[3]);
+          ctx.clip();
+          // Desenhar a versão borrada apenas nessa área
+          ctx.drawImage(tempCanvas, 0, 0);
+          ctx.restore();
+        });
+      }
+  
+      // Desenhar os contornos dos painéis
+      pageData.panels.forEach((panel, i) => {
+        ctx.strokeStyle =
+          i === state.selectedPanelIndex
+            ? "#FF0000"
+            : state.selectedPanelsForMerge.includes(i)
+            ? "#FF8C00"
+            : "#00FF00";
+        ctx.lineWidth =
+          i === state.selectedPanelIndex ||
+          state.selectedPanelsForMerge.includes(i)
+            ? 4
+            : 2;
         ctx.strokeRect(panel[0], panel[1], panel[2], panel[3]);
   
-        // Texto do número do painel
         ctx.fillStyle = ctx.strokeStyle;
         ctx.font = "bold 18px Arial";
         ctx.fillText((i + 1).toString(), panel[0] + 8, panel[1] + 22);
-        applyBlurEffect(); // Aplicar blur na lista de painéis
-      }
+      });
   
       updatePanelsList();
       updatePropertiesForm();
@@ -789,11 +811,9 @@ document.addEventListener("DOMContentLoaded", function () {
       elements.mergePanelsBtn.classList.toggle("active", state.isMergeMode);
     }
   
-    // Funções novas:
     function toggleBlurMode() {
       state.isBlurMode = !state.isBlurMode;
       elements.blurModeBtn.classList.toggle("active");
-      applyBlurEffect();
       displayCurrentPage(); // Redesenha o canvas com o efeito
     }
   
