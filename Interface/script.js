@@ -154,6 +154,45 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+  // 1. Adicione esta função auxiliar para pixelização
+  function pixelateImage(context, x, y, width, height, pixelSize = 64) {
+    context.save();
+
+    // Reduz a resolução da área
+    const smallWidth = Math.floor(width / pixelSize);
+    const smallHeight = Math.floor(height / pixelSize);
+
+    // Desenha a imagem em tamanho reduzido
+    context.imageSmoothingEnabled = false;
+    context.drawImage(
+      context.canvas,
+      x,
+      y,
+      width,
+      height,
+      x,
+      y,
+      smallWidth,
+      smallHeight
+    );
+
+    // Amplia de volta para o tamanho original
+    context.drawImage(
+      context.canvas,
+      x,
+      y,
+      smallWidth,
+      smallHeight,
+      x,
+      y,
+      width,
+      height
+    );
+
+    context.restore();
+  }
+
+  // 2. Modifique a função displayCurrentPage()
   function displayCurrentPage() {
     if (
       !state.comicData ||
@@ -179,32 +218,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Se o modo blur estiver ativo, aplicar blur apenas nos painéis
     if (state.isBlurMode) {
-      // Criar um canvas temporário para o efeito de blur
-      const tempCanvas = document.createElement("canvas");
-      tempCanvas.width = elements.canvas.width;
-      tempCanvas.height = elements.canvas.height;
-      const tempCtx = tempCanvas.getContext("2d");
-
-      // Desenhar a imagem com blur no canvas temporário
-      tempCtx.filter = "blur(8px)";
-      tempCtx.drawImage(
-        img,
-        0,
-        0,
-        elements.canvas.width,
-        elements.canvas.height
-      );
-      tempCtx.filter = "none";
-
-      // Para cada painel, recortar a área borrada do canvas temporário
       pageData.panels.forEach((panel) => {
         ctx.save();
         // Recortar a área do painel
         ctx.beginPath();
         ctx.rect(panel[0], panel[1], panel[2], panel[3]);
         ctx.clip();
-        // Desenhar a versão borrada apenas nessa área
-        ctx.drawImage(tempCanvas, 0, 0);
+        // Aplicar pixelização
+        pixelateImage(ctx, panel[0], panel[1], panel[2], panel[3]);
         ctx.restore();
       });
     }
@@ -601,25 +622,25 @@ document.addEventListener("DOMContentLoaded", function () {
     const maxHeight = elements.canvas.height - panel[1];
 
     elements.propertiesForm.innerHTML = `
-              <div class="property-input">
-                  <label for="panel-x">Posição X:</label>
-                  <input type="number" id="panel-x" value="${panel[0]}" min="0" max="${elements.canvas.width}">
-              </div>
-              <div class="property-input">
-                  <label for="panel-y">Posição Y:</label>
-                  <input type="number" id="panel-y" value="${panel[1]}" min="0" max="${elements.canvas.height}">
-              </div>
-              <div class="property-input">
-                  <label for="panel-width">Largura:</label>
-                  <input type="number" id="panel-width" value="${panel[2]}" min="1" max="${maxWidth}">
-              </div>
-              <div class="property-input">
-                  <label for="panel-height">Altura:</label>
-                  <input type="number" id="panel-height" value="${panel[3]}" min="1" max="${maxHeight}">
-              </div>
-              <button id="update-panel-btn">Atualizar Painel</button>
-              <button id="delete-panel-btn">Excluir Painel</button>
-          `;
+            <div class="property-input">
+                <label for="panel-x">Posição X:</label>
+                <input type="number" id="panel-x" value="${panel[0]}" min="0" max="${elements.canvas.width}">
+            </div>
+            <div class="property-input">
+                <label for="panel-y">Posição Y:</label>
+                <input type="number" id="panel-y" value="${panel[1]}" min="0" max="${elements.canvas.height}">
+            </div>
+            <div class="property-input">
+                <label for="panel-width">Largura:</label>
+                <input type="number" id="panel-width" value="${panel[2]}" min="1" max="${maxWidth}">
+            </div>
+            <div class="property-input">
+                <label for="panel-height">Altura:</label>
+                <input type="number" id="panel-height" value="${panel[3]}" min="1" max="${maxHeight}">
+            </div>
+            <button id="update-panel-btn">Atualizar Painel</button>
+            <button id="delete-panel-btn">Excluir Painel</button>
+        `;
 
     document
       .getElementById("update-panel-btn")
@@ -731,8 +752,7 @@ document.addEventListener("DOMContentLoaded", function () {
       elements.pageInfo.textContent = "Nenhum arquivo carregado";
       return;
     }
-    elements.pageInfo.textContent = `Página ${state.currentPageIndex + 1} de ${state.comicData.length
-      }`;
+    elements.pageInfo.textContent = `Página ${state.currentPageIndex + 1} de ${state.comicData.length}`;
   }
 
   function saveState() {
