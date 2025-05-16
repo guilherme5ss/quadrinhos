@@ -280,6 +280,7 @@ h1 {
   cursor: pointer;
   margin-left: 10px;
   transition: all 0.3s ease;
+  float: right;
 }
 
 #blur-mode-btn:hover {
