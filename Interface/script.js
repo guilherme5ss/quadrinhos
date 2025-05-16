@@ -35,7 +35,9 @@ document.addEventListener("DOMContentLoaded", function () {
     startY: 0,
     history: [],
     historyIndex: -1,
-    isBlurMode: false,
+    effectMode: false, // true para ativar o efeito, false para desativar
+    effectType: "pixelate", // 'blur' ou 'pixelate'
+    effectSize: 64 // Tamanho/intensidade do efeito
   };
 
   // Inicialização
@@ -154,45 +156,78 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // 1. Adicione esta função auxiliar para pixelização
-  function pixelateImage(context, x, y, width, height, pixelSize = 64) {
+  function applyEffect(
+    context,
+    x,
+    y,
+    width,
+    height,
+    effectType,
+    effectSize = 8
+  ) {
     context.save();
 
-    // Reduz a resolução da área
-    const smallWidth = Math.floor(width / pixelSize);
-    const smallHeight = Math.floor(height / pixelSize);
+    if (effectType === "pixelate") {
+      // Efeito de pixelização
+      const smallWidth = Math.floor(width / effectSize);
+      const smallHeight = Math.floor(height / effectSize);
 
-    // Desenha a imagem em tamanho reduzido
-    context.imageSmoothingEnabled = false;
-    context.drawImage(
-      context.canvas,
-      x,
-      y,
-      width,
-      height,
-      x,
-      y,
-      smallWidth,
-      smallHeight
-    );
+      context.imageSmoothingEnabled = false;
+      context.drawImage(
+        context.canvas,
+        x,
+        y,
+        width,
+        height,
+        x,
+        y,
+        smallWidth,
+        smallHeight
+      );
 
-    // Amplia de volta para o tamanho original
-    context.drawImage(
-      context.canvas,
-      x,
-      y,
-      smallWidth,
-      smallHeight,
-      x,
-      y,
-      width,
-      height
-    );
+      context.drawImage(
+        context.canvas,
+        x,
+        y,
+        smallWidth,
+        smallHeight,
+        x,
+        y,
+        width,
+        height
+      );
+    } else if (effectType === "blur") {
+      // Efeito de blur usando canvas temporário
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = width;
+      tempCanvas.height = height;
+      const tempCtx = tempCanvas.getContext("2d");
+
+      // Desenhar a área específica no canvas temporário
+      tempCtx.drawImage(
+        context.canvas,
+        x,
+        y,
+        width,
+        height,
+        0,
+        0,
+        width,
+        height
+      );
+
+      // Aplicar blur
+      tempCtx.filter = `blur(${effectSize}px)`;
+      tempCtx.drawImage(tempCanvas, 0, 0);
+      tempCtx.filter = "none";
+
+      // Desenhar de volta no canvas original
+      context.drawImage(tempCanvas, 0, 0, width, height, x, y, width, height);
+    }
 
     context.restore();
   }
 
-  // 2. Modifique a função displayCurrentPage()
   function displayCurrentPage() {
     if (
       !state.comicData ||
@@ -216,16 +251,24 @@ document.addEventListener("DOMContentLoaded", function () {
     // Desenhar a imagem original
     ctx.drawImage(img, 0, 0, elements.canvas.width, elements.canvas.height);
 
-    // Se o modo blur estiver ativo, aplicar blur apenas nos painéis
-    if (state.isBlurMode) {
+    // Se o modo de efeito estiver ativo, aplicar o efeito selecionado nos painéis
+    if (state.effectMode && state.effectType) {
       pageData.panels.forEach((panel) => {
         ctx.save();
         // Recortar a área do painel
         ctx.beginPath();
         ctx.rect(panel[0], panel[1], panel[2], panel[3]);
         ctx.clip();
-        // Aplicar pixelização
-        pixelateImage(ctx, panel[0], panel[1], panel[2], panel[3]);
+        // Aplicar o efeito selecionado
+        applyEffect(
+          ctx,
+          panel[0],
+          panel[1],
+          panel[2],
+          panel[3],
+          state.effectType,
+          state.effectSize || 8
+        );
         ctx.restore();
       });
     }
@@ -830,7 +873,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function toggleBlurMode() {
-    state.isBlurMode = !state.isBlurMode;
+    state.effectMode = !state.effectMode;
     elements.blurModeBtn.classList.toggle("active");
     displayCurrentPage(); // Redesenha o canvas com o efeito
   }
