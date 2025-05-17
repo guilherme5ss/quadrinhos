@@ -4,8 +4,9 @@ import json
 import cv2 as cv
 import fitz  # PyMuPDF
 from PIL import Image
+from ebooklib import epub
 
-def save_panels_from_json(json_path, images_folder, output_base_path='saida', output_format='jpg'): # Segmenta um quadrinho a partir de um arquivo .json
+def recortar_paineis_json(json_path, images_folder, output_base_path='saida', output_format='jpg'): # Segmenta um quadrinho a partir de um arquivo .json
     # Verificações iniciais
     if not os.path.exists(json_path):
         print(f"[ERROR] JSON file not found: {json_path}", file=sys.stderr)
@@ -56,12 +57,12 @@ def save_panels_from_json(json_path, images_folder, output_base_path='saida', ou
 
     print(f"✅ Saved {nb_written_panels} panel images to '{output_base_path}'", file=sys.stderr)
 
-# save_panels_from_json(json_path=r"json\Y\vol1_edit.json", 
-#                      images_folder=r"pages\Y\Volume1", 
-#                      output_base_path=r"pages\paineis\Y\\1", 
-#                      output_format='png')
+recortar_paineis_json(json_path=r"json\Y\vol1_edit.json", 
+                     images_folder=r"pages\Y\Volume1", 
+                     output_base_path=r"pages\paineis\Y\\1", 
+                     output_format='png')
 
-def generate_pdf_with_pymupdf(panels_base_path, output_pdf_path='painels_saida.pdf'): #Gera um pdf a partir de um diretorio de imagens
+def gerar_pdf_paineis(panels_base_path, output_pdf_path='painels_saida.pdf'): #Gera um pdf a partir de um diretorio de imagens
     doc = fitz.open()
 
     folders = sorted(os.listdir(panels_base_path))
@@ -94,4 +95,53 @@ def generate_pdf_with_pymupdf(panels_base_path, output_pdf_path='painels_saida.p
     doc.close()
     print(f"✅ PDF gerado com sucesso: {output_pdf_path}")
 
-#generate_pdf_with_pymupdf(r"pages\paineis\Y\\1", 'painels_final.pdf')
+gerar_pdf_paineis(r"pages\paineis\Y\\1", 'painels_final.pdf')
+
+def gerar_epub_paineis(panels_base_path, output_epub_path='painels_saida.epub', title="Comic Panels"):
+    book = epub.EpubBook()
+    book.set_identifier('comic-id')
+    book.set_title(title)
+    book.set_language('en')
+    book.add_author('Autor Desconhecido')
+
+    spine = ['nav']
+    toc = []
+
+    folders = sorted(os.listdir(panels_base_path))
+    chapter_count = 1
+
+    for folder in folders:
+        folder_path = os.path.join(panels_base_path, folder)
+        if not os.path.isdir(folder_path):
+            continue
+
+        panels = sorted(os.listdir(folder_path))
+        for panel_file in panels:
+            panel_path = os.path.join(folder_path, panel_file)
+            try:
+                img_data = open(panel_path, 'rb').read()
+                image_name = f"img_{chapter_count}.jpg"
+
+                img_item = epub.EpubItem(uid=image_name, file_name=image_name, media_type='image/jpeg', content=img_data)
+                book.add_item(img_item)
+
+                html_content = f'<html><body><img src="{image_name}" alt="Panel {chapter_count}" /></body></html>'
+                c = epub.EpubHtml(title=f'Painel {chapter_count}', file_name=f'chap_{chapter_count}.xhtml', content=html_content)
+                book.add_item(c)
+                spine.append(c)
+                toc.append(c)
+
+                chapter_count += 1
+            except Exception as e:
+                print(f"[ERROR] Skipping {panel_path}: {e}")
+
+    book.toc = tuple(toc)
+    book.spine = spine
+    book.add_item(epub.EpubNcx())
+    book.add_item(epub.EpubNav())
+
+    epub.write_epub(output_epub_path, book)
+    print(f"✅ EPUB salvo em: {output_epub_path}")
+
+# Para gerar o EPUB:
+gerar_epub_paineis(r"pages\paineis\Y\\1", 'painels_final.epub')
