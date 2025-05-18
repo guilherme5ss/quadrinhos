@@ -318,3 +318,17 @@ h1 {
 #blur-mode-btn:hover::after {
   visibility: visible;
 }
+
+.mouse-coords-display {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-family: monospace;
+  pointer-events: none;
+  /* Permite clicar através do elemento */
+  z-index: 10;
+}

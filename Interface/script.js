@@ -16,6 +16,7 @@ document.addEventListener("DOMContentLoaded", function () {
     nextPageBtn: document.getElementById("next-page-btn"),
     pageInfo: document.getElementById("page-info"),
     blurModeBtn: document.getElementById("blur-mode-btn"),
+    mouseCoordsDisplay: document.getElementById("mouse-coords")
   };
 
   const ctx = elements.canvas.getContext("2d");
@@ -37,7 +38,8 @@ document.addEventListener("DOMContentLoaded", function () {
     historyIndex: -1,
     effectMode: false, // true para ativar o efeito, false para desativar
     effectType: "pixelate", // 'blur' ou 'pixelate'
-    effectSize: 64 // Tamanho/intensidade do efeito
+    effectSize: 64, // Tamanho/intensidade do efeito
+    mousePosition: { x: 0, y: 0 } // Novo estado para armazenar posição do mouse
   };
 
   // Inicialização
@@ -296,6 +298,10 @@ document.addEventListener("DOMContentLoaded", function () {
     updatePanelsList();
     updatePropertiesForm();
     updateButtonStates();
+
+    // Posiciona o display de coordenadas
+    elements.mouseCoordsDisplay.style.display = "block";
+    updateMouseCoordsDisplay();
   }
 
   function updatePanelsList() {
@@ -526,6 +532,37 @@ document.addEventListener("DOMContentLoaded", function () {
     displayCurrentPage();
   }
 
+  // Função para atualizar a exibição das coordenadas
+  function updateMouseCoordsDisplay() {
+    elements.mouseCoordsDisplay.textContent = `X: ${state.mousePosition.x}, Y: ${state.mousePosition.y}`;
+  }
+
+  // Função para mapear posição do mouse para coordenadas da imagem
+  function getImageCoords(clientX, clientY) {
+    const rect = elements.canvas.getBoundingClientRect();
+    const scaleX = elements.canvas.width / rect.width;
+    const scaleY = elements.canvas.height / rect.height;
+
+    return {
+      x: Math.floor((clientX - rect.left) * scaleX),
+      y: Math.floor((clientY - rect.top) * scaleY)
+    };
+  }
+  // Adicione estes event listeners:
+  elements.canvas.addEventListener("mousemove", (e) => {
+    const coords = getImageCoords(e.clientX, e.clientY);
+    state.mousePosition = coords;
+    updateMouseCoordsDisplay();
+  });
+
+  elements.canvas.addEventListener("mouseout", () => {
+    elements.mouseCoordsDisplay.style.opacity = "0";
+  });
+
+  elements.canvas.addEventListener("mouseenter", () => {
+    elements.mouseCoordsDisplay.style.opacity = "1";
+  });
+
   function handleCanvasMouseDown(e) {
     if (!state.comicData || state.comicData.length <= state.currentPageIndex)
       return;
@@ -545,7 +582,7 @@ document.addEventListener("DOMContentLoaded", function () {
         Math.max(0, Math.min(state.startX, elements.canvas.width)),
         Math.max(0, Math.min(state.startY, elements.canvas.height)),
         0,
-        0,
+        0
       ]);
       state.selectedPanelIndex =
         state.comicData[state.currentPageIndex].panels.length - 1;
