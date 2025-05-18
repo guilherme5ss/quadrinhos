@@ -57,12 +57,7 @@ def recortar_paineis_json(json_path, images_folder, output_base_path='saida', ou
 
     print(f"✅ Saved {nb_written_panels} panel images to '{output_base_path}'", file=sys.stderr)
 
-recortar_paineis_json(json_path=r"json\Y\vol1_edit.json", 
-                     images_folder=r"pages\Y\Volume1", 
-                     output_base_path=r"pages\paineis\Y\\1", 
-                     output_format='png')
-
-def gerar_pdf_paineis(panels_base_path, output_pdf_path='painels_saida.pdf'): #Gera um pdf a partir de um diretorio de imagens
+def gerar_pdf_paineis(panels_base_path, output_pdf_path='painels_saida.pdf'): # Gera um pdf a partir de um diretorio de imagens
     doc = fitz.open()
 
     folders = sorted(os.listdir(panels_base_path))
@@ -95,13 +90,11 @@ def gerar_pdf_paineis(panels_base_path, output_pdf_path='painels_saida.pdf'): #G
     doc.close()
     print(f"✅ PDF gerado com sucesso: {output_pdf_path}")
 
-gerar_pdf_paineis(r"pages\paineis\Y\\1", 'painels_final.pdf')
-
-def gerar_epub_paineis(panels_base_path, output_epub_path='painels_saida.epub', title="Comic Panels"):
+def gerar_epub_paineis(panels_base_path, output_epub_path='painels_saida.epub', title="Paineis"): # Gera um epub a partir de um diretorio de imagens
     book = epub.EpubBook()
     book.set_identifier('comic-id')
     book.set_title(title)
-    book.set_language('en')
+    book.set_language('pt')
     book.add_author('Autor Desconhecido')
 
     spine = ['nav']
@@ -143,5 +136,13 @@ def gerar_epub_paineis(panels_base_path, output_epub_path='painels_saida.epub', 
     epub.write_epub(output_epub_path, book)
     print(f"✅ EPUB salvo em: {output_epub_path}")
 
+recortar_paineis_json(json_path=r"json\Y\vol2_edit.json", 
+                     images_folder=r"pages\Y\Volume2", 
+                     output_base_path=r"pages\paineis\Y\\2", 
+                     output_format='png')
+
+# Para gerar o PDF:
+gerar_pdf_paineis(r"pages\paineis\Y\\2", 'Paineis Y Volume 2.pdf')
+
 # Para gerar o EPUB:
-gerar_epub_paineis(r"pages\paineis\Y\\1", 'painels_final.epub')
+gerar_epub_paineis(r"pages\paineis\Y\\2", 'Paineis Y Volume 2.epub')

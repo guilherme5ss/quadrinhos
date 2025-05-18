@@ -2,6 +2,8 @@ import os
 from prompt_toolkit import prompt
 from prompt_toolkit.shortcuts import input_dialog
 import shutil #simplificar_pasta()
+import subprocess
+import cv2
 
 def renomear_pastas(diretorio_raiz): # Percorre um diretorio para renomear pastas
     """
@@ -122,3 +124,34 @@ def simplificar_pasta(pasta_principal): # Simplifica a estrutura de pastas
             caminho = os.path.dirname(caminho)
     else:
         print("Nada para simplificar.")
+
+
+
+def arquivo_sem_extensao(caminho): # Extrai o nome do arquivo sem a extensão a partir de um caminho de arquivo fornecido.
+    """
+    Argumentos:
+        caminho: O caminho para o arquivo.
+
+    Retorna:
+        Nome do arquivo sem a extensão.
+    """
+    return os.path.splitext(os.path.basename(caminho))[0]
+
+
+def json_diretorio(diretorio_raiz, diretorio_saida): # Gera arquivos .json de pastas com kumiko
+    for raiz, pastas, arquivos in os.walk(diretorio_raiz):
+        for pasta in pastas:
+            caminho_entrada = os.path.join(raiz, pasta)
+            caminho_saida = diretorio_saida +"\\"+ arquivo_sem_extensao(caminho_entrada) + ".json"
+            comando =  ["python", "kumiko", "-i", caminho_entrada, "-o", caminho_saida]
+
+            # Executando o comando
+            processo = subprocess.run(comando, shell=True, text=True, capture_output=True)
+            # Exibindo a saída do comando
+            print("Saída do comando:")
+            print(processo.stdout)
+        
+            # Exibindo erros, se houver
+            if processo.stderr:
+                print("Erros:")
+                print(processo.stderr)
