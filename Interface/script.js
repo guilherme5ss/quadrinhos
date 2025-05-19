@@ -1,3 +1,15 @@
+const HANDLE_SIZE = 16;
+const HANDLE_TYPES = {
+  TOP_LEFT: "top-left",
+  TOP_RIGHT: "top-right",
+  BOTTOM_LEFT: "bottom-left",
+  BOTTOM_RIGHT: "bottom-right",
+  TOP: "top",
+  RIGHT: "right",
+  BOTTOM: "bottom",
+  LEFT: "left"
+};
+
 document.addEventListener("DOMContentLoaded", function () {
   // Elementos do DOM
   const elements = {
@@ -39,7 +51,9 @@ document.addEventListener("DOMContentLoaded", function () {
     effectMode: false, // true para ativar o efeito, false para desativar
     effectType: "pixelate", // 'blur' ou 'pixelate'
     effectSize: 64, // Tamanho/intensidade do efeito
-    mousePosition: { x: 0, y: 0 } // Novo estado para armazenar posição do mouse
+    mousePosition: { x: 0, y: 0 }, // Novo estado para armazenar posição do mouse
+    resizingHandle: null,
+    originalPanelState: null
   };
 
   // Inicialização
@@ -230,6 +244,92 @@ document.addEventListener("DOMContentLoaded", function () {
     context.restore();
   }
 
+  function getHandleRects(panel) {
+    return {
+      [HANDLE_TYPES.TOP_LEFT]: {
+        x: panel[0] - HANDLE_SIZE / 2,
+        y: panel[1] - HANDLE_SIZE / 2,
+        width: HANDLE_SIZE,
+        height: HANDLE_SIZE
+      },
+      [HANDLE_TYPES.TOP_RIGHT]: {
+        x: panel[0] + panel[2] - HANDLE_SIZE / 2,
+        y: panel[1] - HANDLE_SIZE / 2,
+        width: HANDLE_SIZE,
+        height: HANDLE_SIZE
+      },
+      [HANDLE_TYPES.BOTTOM_LEFT]: {
+        x: panel[0] - HANDLE_SIZE / 2,
+        y: panel[1] + panel[3] - HANDLE_SIZE / 2,
+        width: HANDLE_SIZE,
+        height: HANDLE_SIZE
+      },
+      [HANDLE_TYPES.BOTTOM_RIGHT]: {
+        x: panel[0] + panel[2] - HANDLE_SIZE / 2,
+        y: panel[1] + panel[3] - HANDLE_SIZE / 2,
+        width: HANDLE_SIZE,
+        height: HANDLE_SIZE
+      },
+      [HANDLE_TYPES.TOP]: {
+        x: panel[0] + panel[2] / 2 - HANDLE_SIZE / 2,
+        y: panel[1] - HANDLE_SIZE / 2,
+        width: HANDLE_SIZE,
+        height: HANDLE_SIZE
+      },
+      [HANDLE_TYPES.RIGHT]: {
+        x: panel[0] + panel[2] - HANDLE_SIZE / 2,
+        y: panel[1] + panel[3] / 2 - HANDLE_SIZE / 2,
+        width: HANDLE_SIZE,
+        height: HANDLE_SIZE
+      },
+      [HANDLE_TYPES.BOTTOM]: {
+        x: panel[0] + panel[2] / 2 - HANDLE_SIZE / 2,
+        y: panel[1] + panel[3] - HANDLE_SIZE / 2,
+        width: HANDLE_SIZE,
+        height: HANDLE_SIZE
+      },
+      [HANDLE_TYPES.LEFT]: {
+        x: panel[0] - HANDLE_SIZE / 2,
+        y: panel[1] + panel[3] / 2 - HANDLE_SIZE / 2,
+        width: HANDLE_SIZE,
+        height: HANDLE_SIZE
+      }
+    };
+  }
+
+  function drawHandles(panel) {
+    const handles = getHandleRects(panel);
+
+    ctx.save();
+    ctx.fillStyle = "#FFFFFF";
+    ctx.strokeStyle = "#000000";
+    ctx.lineWidth = 1;
+
+    Object.values(handles).forEach((handle) => {
+      ctx.fillRect(handle.x, handle.y, handle.width, handle.height);
+      ctx.strokeRect(handle.x, handle.y, handle.width, handle.height);
+    });
+
+    ctx.restore();
+  }
+
+  function getHandleAtPosition(panel, x, y) {
+    const handles = getHandleRects(panel);
+
+    for (const [type, rect] of Object.entries(handles)) {
+      if (
+        x >= rect.x &&
+        x <= rect.x + rect.width &&
+        y >= rect.y &&
+        y <= rect.y + rect.height
+      ) {
+        return type;
+      }
+    }
+
+    return null;
+  }
+
   function displayCurrentPage() {
     if (
       !state.comicData ||
@@ -293,6 +393,16 @@ document.addEventListener("DOMContentLoaded", function () {
       ctx.fillStyle = ctx.strokeStyle;
       ctx.font = "bold 18px Arial";
       ctx.fillText((i + 1).toString(), panel[0] + 8, panel[1] + 22);
+    });
+
+    // Desenhar os painéis e contornos
+    pageData.panels.forEach((panel, i) => {
+      // ... código de desenho existente ...
+
+      // Desenhar alças apenas para o painel selecionado
+      if (i === state.selectedPanelIndex) {
+        drawHandles(panel);
+      }
     });
 
     updatePanelsList();
@@ -623,91 +733,207 @@ document.addEventListener("DOMContentLoaded", function () {
       ]);
       state.selectedPanelIndex =
         state.comicData[state.currentPageIndex].panels.length - 1;
-    } else {
-      // Modo seleção - comportamento melhorado
-      const panels = state.comicData[state.currentPageIndex].panels;
-      let clickedPanelIndex = -1;
+      displayCurrentPage();
+      return;
+    }
 
-      // Verifica de trás para frente (painéis no topo primeiro)
-      for (let i = panels.length - 1; i >= 0; i--) {
-        const panel = panels[i];
-        if (
-          state.startX >= panel[0] &&
-          state.startX <= panel[0] + panel[2] &&
-          state.startY >= panel[1] &&
-          state.startY <= panel[1] + panel[3]
-        ) {
+    // Verifica primeiro se clicou em uma alça do painel selecionado
+    if (state.selectedPanelIndex !== -1) {
+      const selectedPanel =
+        state.comicData[state.currentPageIndex].panels[
+        state.selectedPanelIndex
+        ];
+      state.resizingHandle = getHandleAtPosition(
+        selectedPanel,
+        coords.x,
+        coords.y
+      );
+
+      if (state.resizingHandle) {
+        state.originalPanelState = [...selectedPanel];
+        e.preventDefault();
+        return;
+      }
+    }
+
+    // Se não clicou em uma alça, verifica se clicou em outro painel
+    let clickedPanelIndex = -1;
+    const panels = state.comicData[state.currentPageIndex].panels;
+
+    // Verifica de trás para frente (painéis no topo primeiro)
+    for (let i = panels.length - 1; i >= 0; i--) {
+      const panel = panels[i];
+      if (
+        coords.x >= panel[0] &&
+        coords.x <= panel[0] + panel[2] &&
+        coords.y >= panel[1] &&
+        coords.y <= panel[1] + panel[3]
+      ) {
+        // Verifica se o clique foi em uma alça deste painel
+        const handle = getHandleAtPosition(panel, coords.x, coords.y);
+        if (!handle) {
           clickedPanelIndex = i;
           break;
         }
       }
+    }
 
-      if (clickedPanelIndex !== -1) {
-        if (state.isMergeMode) {
-          // Modo merge - seleção múltipla com Ctrl/Shift
-          if (e.ctrlKey || e.metaKey) {
-            const index = state.selectedPanelsForMerge.indexOf(
-              clickedPanelIndex
-            );
-            if (index === -1) {
-              state.selectedPanelsForMerge.push(clickedPanelIndex);
-            } else {
-              state.selectedPanelsForMerge.splice(index, 1);
-            }
-          } else if (e.shiftKey && state.selectedPanelsForMerge.length > 0) {
-            // Seleção por intervalo com Shift
-            const lastSelected = Math.max(...state.selectedPanelsForMerge);
-            const start = Math.min(lastSelected, clickedPanelIndex);
-            const end = Math.max(lastSelected, clickedPanelIndex);
-            state.selectedPanelsForMerge = [];
-            for (let i = start; i <= end; i++) {
-              state.selectedPanelsForMerge.push(i);
-            }
+    // Atualiza a seleção conforme o modo
+    if (clickedPanelIndex !== -1) {
+      if (state.isMergeMode) {
+        // Lógica de seleção múltipla (mantida igual)
+        if (e.ctrlKey || e.metaKey) {
+          const index = state.selectedPanelsForMerge.indexOf(clickedPanelIndex);
+          if (index === -1) {
+            state.selectedPanelsForMerge.push(clickedPanelIndex);
           } else {
-            // Clique simples - seleção única
-            state.selectedPanelsForMerge = [clickedPanelIndex];
+            state.selectedPanelsForMerge.splice(index, 1);
           }
-          state.selectedPanelIndex = -1;
-        } else {
-          // Modo normal - seleção única
-          state.selectedPanelIndex = clickedPanelIndex;
+        } else if (e.shiftKey && state.selectedPanelsForMerge.length > 0) {
+          const lastSelected = Math.max(...state.selectedPanelsForMerge);
+          const start = Math.min(lastSelected, clickedPanelIndex);
+          const end = Math.max(lastSelected, clickedPanelIndex);
           state.selectedPanelsForMerge = [];
+          for (let i = start; i <= end; i++) {
+            state.selectedPanelsForMerge.push(i);
+          }
+        } else {
+          state.selectedPanelsForMerge = [clickedPanelIndex];
         }
+        state.selectedPanelIndex = -1;
       } else {
-        // Clicou fora de qualquer painel
-        if (!state.isMergeMode) {
-          state.selectedPanelIndex = -1;
-        }
+        // Seleção normal
+        state.selectedPanelIndex = clickedPanelIndex;
         state.selectedPanelsForMerge = [];
       }
+    } else {
+      // Clicou fora de qualquer painel
+      if (!state.isMergeMode) {
+        state.selectedPanelIndex = -1;
+      }
+      state.selectedPanelsForMerge = [];
     }
 
     displayCurrentPage();
   }
 
   function handleCanvasMouseMove(e) {
-    if (!state.isDrawing) return;
+    if (state.isDrawing) {
+      const rect = elements.canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
 
-    const rect = elements.canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+      // Verifica se o mouse está dentro dos limites do canvas
+      const isInside =
+        mouseX >= 0 &&
+        mouseX <= rect.width &&
+        mouseY >= 0 &&
+        mouseY <= rect.height;
 
-    // Verifica se o mouse está dentro dos limites do canvas
-    const isInside =
-      mouseX >= 0 &&
-      mouseX <= rect.width &&
-      mouseY >= 0 &&
-      mouseY <= rect.height;
-
-    if (isInside) {
+      if (isInside) {
+        const coords = getImageCoords(e.clientX, e.clientY);
+        updateDrawingPanel(coords.x, coords.y);
+      } else {
+        // Atualiza com as coordenadas no limite do canvas
+        const boundedX = Math.max(0, Math.min(mouseX, rect.width));
+        const boundedY = Math.max(0, Math.min(mouseY, rect.height));
+        const coords = getImageCoords(
+          boundedX + rect.left,
+          boundedY + rect.top
+        );
+        updateDrawingPanel(coords.x, coords.y);
+      }
+    } else if (state.resizingHandle) {
       const coords = getImageCoords(e.clientX, e.clientY);
-      updateDrawingPanel(coords.x, coords.y);
-    } else {
-      // Atualiza com as coordenadas no limite do canvas
-      const boundedX = Math.max(0, Math.min(mouseX, rect.width));
-      const boundedY = Math.max(0, Math.min(mouseY, rect.height));
-      const coords = getImageCoords(boundedX + rect.left, boundedY + rect.top);
-      updateDrawingPanel(coords.x, coords.y);
+      const panel =
+        state.comicData[state.currentPageIndex].panels[
+        state.selectedPanelIndex
+        ];
+
+      // Mantém valores mínimos de tamanho
+      const MIN_SIZE = 20;
+
+      switch (state.resizingHandle) {
+        case HANDLE_TYPES.TOP_LEFT:
+          panel[0] = Math.min(
+            coords.x,
+            state.originalPanelState[0] + state.originalPanelState[2] - MIN_SIZE
+          );
+          panel[1] = Math.min(
+            coords.y,
+            state.originalPanelState[1] + state.originalPanelState[3] - MIN_SIZE
+          );
+          panel[2] =
+            state.originalPanelState[0] +
+            state.originalPanelState[2] -
+            panel[0];
+          panel[3] =
+            state.originalPanelState[1] +
+            state.originalPanelState[3] -
+            panel[1];
+          break;
+
+        case HANDLE_TYPES.TOP_RIGHT:
+          panel[1] = Math.min(
+            coords.y,
+            state.originalPanelState[1] + state.originalPanelState[3] - MIN_SIZE
+          );
+          panel[2] = Math.max(MIN_SIZE, coords.x - state.originalPanelState[0]);
+          panel[3] =
+            state.originalPanelState[1] +
+            state.originalPanelState[3] -
+            panel[1];
+          break;
+
+        case HANDLE_TYPES.BOTTOM_LEFT:
+          panel[0] = Math.min(
+            coords.x,
+            state.originalPanelState[0] + state.originalPanelState[2] - MIN_SIZE
+          );
+          panel[2] =
+            state.originalPanelState[0] +
+            state.originalPanelState[2] -
+            panel[0];
+          panel[3] = Math.max(MIN_SIZE, coords.y - state.originalPanelState[1]);
+          break;
+
+        case HANDLE_TYPES.BOTTOM_RIGHT:
+          panel[2] = Math.max(MIN_SIZE, coords.x - state.originalPanelState[0]);
+          panel[3] = Math.max(MIN_SIZE, coords.y - state.originalPanelState[1]);
+          break;
+
+        case HANDLE_TYPES.TOP:
+          panel[1] = Math.min(
+            coords.y,
+            state.originalPanelState[1] + state.originalPanelState[3] - MIN_SIZE
+          );
+          panel[3] =
+            state.originalPanelState[1] +
+            state.originalPanelState[3] -
+            panel[1];
+          break;
+
+        case HANDLE_TYPES.RIGHT:
+          panel[2] = Math.max(MIN_SIZE, coords.x - state.originalPanelState[0]);
+          break;
+
+        case HANDLE_TYPES.BOTTOM:
+          panel[3] = Math.max(MIN_SIZE, coords.y - state.originalPanelState[1]);
+          break;
+
+        case HANDLE_TYPES.LEFT:
+          panel[0] = Math.min(
+            coords.x,
+            state.originalPanelState[0] + state.originalPanelState[2] - MIN_SIZE
+          );
+          panel[2] =
+            state.originalPanelState[0] +
+            state.originalPanelState[2] -
+            panel[0];
+          break;
+      }
+
+      displayCurrentPage();
     }
   }
 
@@ -730,6 +956,11 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       displayCurrentPage();
+    }
+    if (state.resizingHandle) {
+      state.resizingHandle = null;
+      state.originalPanelState = null;
+      saveState(); // Salva o estado após redimensionamento
     }
   }
 

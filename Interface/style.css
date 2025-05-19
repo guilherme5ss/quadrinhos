@@ -337,20 +337,32 @@ h1 {
 }
 
 #panels-list li {
-    cursor: pointer;
-    transition: background-color 0.2s;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 
 #panels-list li:hover {
-    background-color: #f0f0f0;
+  background-color: #f0f0f0;
 }
 
 #panels-list li.active {
-    background-color: #4CAF50;
-    color: white;
+  background-color: #4caf50;
+  color: white;
 }
 
 #panels-list li.merge-selected {
-    background-color: #FFA500;
-    color: white;
+  background-color: #ffa500;
+  color: white;
+}
+
+.canvas-resize-handle {
+  cursor: nwse-resize;
+}
+.canvas-resize-handle-top,
+.canvas-resize-handle-bottom {
+  cursor: ns-resize;
+}
+.canvas-resize-handle-left,
+.canvas-resize-handle-right {
+  cursor: ew-resize;
 }
