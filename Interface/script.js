@@ -305,25 +305,27 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function updatePanelsList() {
-    if (!state.comicData || state.comicData.length <= state.currentPageIndex) return;
+    if (!state.comicData || state.comicData.length <= state.currentPageIndex)
+      return;
 
-    elements.panelsList.innerHTML = '';
+    elements.panelsList.innerHTML = "";
     const panels = state.comicData[state.currentPageIndex].panels;
 
     panels.forEach((panel, i) => {
-      const li = document.createElement('li');
-      li.textContent = `Painel ${i + 1}: ${panel[0]}x${panel[1]} (${panel[2]}×${panel[3]})`;
+      const li = document.createElement("li");
+      li.textContent = `Painel ${i + 1}: ${panel[0]}x${panel[1]} (${panel[2]}×${panel[3]
+        })`;
       li.dataset.index = i;
 
       // Sincroniza com as seleções atuais
       if (i === state.selectedPanelIndex) {
-        li.classList.add('active');
+        li.classList.add("active");
       } else if (state.selectedPanelsForMerge.includes(i)) {
-        li.classList.add('merge-selected');
+        li.classList.add("merge-selected");
       }
 
-      li.addEventListener('click', function (e) {
-        if (e.target.tagName === 'BUTTON') return;
+      li.addEventListener("click", function (e) {
+        if (e.target.tagName === "BUTTON") return;
 
         const index = parseInt(this.dataset.index);
 
@@ -343,7 +345,10 @@ document.addEventListener("DOMContentLoaded", function () {
             } else {
               state.selectedPanelsForMerge.splice(idx, 1);
             }
-          } else if (mockEvent.shiftKey && state.selectedPanelsForMerge.length > 0) {
+          } else if (
+            mockEvent.shiftKey &&
+            state.selectedPanelsForMerge.length > 0
+          ) {
             const lastSelected = Math.max(...state.selectedPanelsForMerge);
             const start = Math.min(lastSelected, index);
             const end = Math.max(lastSelected, index);
@@ -364,18 +369,18 @@ document.addEventListener("DOMContentLoaded", function () {
       });
 
       // Botões de mover (mantidos)
-      const moveUpBtn = document.createElement('button');
-      moveUpBtn.textContent = '↑';
-      moveUpBtn.className = 'move-btn';
-      moveUpBtn.addEventListener('click', (e) => {
+      const moveUpBtn = document.createElement("button");
+      moveUpBtn.textContent = "↑";
+      moveUpBtn.className = "move-btn";
+      moveUpBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         movePanelUp(i);
       });
 
-      const moveDownBtn = document.createElement('button');
-      moveDownBtn.textContent = '↓';
-      moveDownBtn.className = 'move-btn';
-      moveDownBtn.addEventListener('click', (e) => {
+      const moveDownBtn = document.createElement("button");
+      moveDownBtn.textContent = "↓";
+      moveDownBtn.className = "move-btn";
+      moveDownBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         movePanelDown(i);
       });
@@ -599,22 +604,25 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   function handleCanvasMouseDown(e) {
-    if (!state.comicData || state.comicData.length <= state.currentPageIndex) return;
+    if (!state.comicData || state.comicData.length <= state.currentPageIndex)
+      return;
 
     const coords = getImageCoords(e.clientX, e.clientY);
     state.startX = coords.x;
     state.startY = coords.y;
 
     if (state.isDrawMode) {
-      // Modo desenho
+      // Modo desenho (mantido igual)
       state.isDrawing = true;
       saveState();
       state.comicData[state.currentPageIndex].panels.push([
         Math.floor(state.startX),
         Math.floor(state.startY),
-        0, 0
+        0,
+        0
       ]);
-      state.selectedPanelIndex = state.comicData[state.currentPageIndex].panels.length - 1;
+      state.selectedPanelIndex =
+        state.comicData[state.currentPageIndex].panels.length - 1;
     } else {
       // Modo seleção - comportamento melhorado
       const panels = state.comicData[state.currentPageIndex].panels;
@@ -623,8 +631,12 @@ document.addEventListener("DOMContentLoaded", function () {
       // Verifica de trás para frente (painéis no topo primeiro)
       for (let i = panels.length - 1; i >= 0; i--) {
         const panel = panels[i];
-        if (state.startX >= panel[0] && state.startX <= panel[0] + panel[2] &&
-          state.startY >= panel[1] && state.startY <= panel[1] + panel[3]) {
+        if (
+          state.startX >= panel[0] &&
+          state.startX <= panel[0] + panel[2] &&
+          state.startY >= panel[1] &&
+          state.startY <= panel[1] + panel[3]
+        ) {
           clickedPanelIndex = i;
           break;
         }
@@ -634,7 +646,9 @@ document.addEventListener("DOMContentLoaded", function () {
         if (state.isMergeMode) {
           // Modo merge - seleção múltipla com Ctrl/Shift
           if (e.ctrlKey || e.metaKey) {
-            const index = state.selectedPanelsForMerge.indexOf(clickedPanelIndex);
+            const index = state.selectedPanelsForMerge.indexOf(
+              clickedPanelIndex
+            );
             if (index === -1) {
               state.selectedPanelsForMerge.push(clickedPanelIndex);
             } else {
@@ -672,35 +686,29 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function handleCanvasMouseMove(e) {
-    if (
-      !state.isDrawing ||
-      !state.comicData ||
-      state.comicData.length <= state.currentPageIndex
-    )
-      return;
+    if (!state.isDrawing) return;
 
-    const coords = getImageCoords(e.clientX, e.clientY);
-    const mouseX = Math.max(0, Math.min(coords.x, elements.canvas.width));
-    const mouseY = Math.max(0, Math.min(coords.y, elements.canvas.height));
+    const rect = elements.canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
 
-    const panel =
-      state.comicData[state.currentPageIndex].panels[state.selectedPanelIndex];
+    // Verifica se o mouse está dentro dos limites do canvas
+    const isInside =
+      mouseX >= 0 &&
+      mouseX <= rect.width &&
+      mouseY >= 0 &&
+      mouseY <= rect.height;
 
-    // Garante valores inteiros e dentro dos limites
-    panel[0] = Math.floor(Math.min(state.startX, mouseX));
-    panel[1] = Math.floor(Math.min(state.startY, mouseY));
-    panel[2] = Math.floor(Math.abs(mouseX - state.startX));
-    panel[3] = Math.floor(Math.abs(mouseY - state.startY));
-
-    // Garante que não ultrapasse os limites do canvas
-    if (panel[0] + panel[2] > elements.canvas.width) {
-      panel[2] = elements.canvas.width - panel[0];
+    if (isInside) {
+      const coords = getImageCoords(e.clientX, e.clientY);
+      updateDrawingPanel(coords.x, coords.y);
+    } else {
+      // Atualiza com as coordenadas no limite do canvas
+      const boundedX = Math.max(0, Math.min(mouseX, rect.width));
+      const boundedY = Math.max(0, Math.min(mouseY, rect.height));
+      const coords = getImageCoords(boundedX + rect.left, boundedY + rect.top);
+      updateDrawingPanel(coords.x, coords.y);
     }
-    if (panel[1] + panel[3] > elements.canvas.height) {
-      panel[3] = elements.canvas.height - panel[1];
-    }
-
-    displayCurrentPage();
   }
 
   function handleCanvasMouseUp() {
@@ -712,7 +720,7 @@ document.addEventListener("DOMContentLoaded", function () {
         state.selectedPanelIndex
         ];
 
-      // Remover painel se for muito pequeno
+      // Remove painel se for muito pequeno
       if (panel[2] < 10 || panel[3] < 10) {
         state.comicData[state.currentPageIndex].panels.splice(
           state.selectedPanelIndex,
@@ -725,11 +733,39 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  function handleCanvasMouseOut() {
+  document.addEventListener("mouseup", handleCanvasMouseUp);
+
+  function handleCanvasMouseOut(e) {
     if (state.isDrawing) {
-      state.isDrawing = false;
-      displayCurrentPage();
+      // Não finaliza o desenho aqui, apenas verifica os limites
+      const rect = elements.canvas.getBoundingClientRect();
+      const mouseX = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+      const mouseY = Math.max(0, Math.min(e.clientY - rect.top, rect.height));
+
+      const coords = getImageCoords(mouseX + rect.left, mouseY + rect.top);
+      updateDrawingPanel(coords.x, coords.y);
     }
+  }
+
+  function updateDrawingPanel(mouseX, mouseY) {
+    const panel =
+      state.comicData[state.currentPageIndex].panels[state.selectedPanelIndex];
+
+    // Garante valores inteiros e dentro dos limites
+    panel[0] = Math.floor(Math.min(state.startX, mouseX));
+    panel[1] = Math.floor(Math.min(state.startY, mouseY));
+    panel[2] = Math.floor(Math.abs(mouseX - state.startX));
+    panel[3] = Math.floor(Math.abs(mouseY - state.startY));
+
+    // Limites do canvas
+    if (panel[0] + panel[2] > elements.canvas.width) {
+      panel[2] = elements.canvas.width - panel[0];
+    }
+    if (panel[1] + panel[3] > elements.canvas.height) {
+      panel[3] = elements.canvas.height - panel[1];
+    }
+
+    displayCurrentPage();
   }
 
   function updatePropertiesForm() {
