@@ -281,11 +281,11 @@ document.addEventListener("DOMContentLoaded", function () {
         i === state.selectedPanelIndex
           ? "#FF0000"
           : state.selectedPanelsForMerge.includes(i)
-          ? "#FF8C00"
-          : "#00FF00";
+            ? "#FF8C00"
+            : "#00FF00";
       ctx.lineWidth =
         i === state.selectedPanelIndex ||
-        state.selectedPanelsForMerge.includes(i)
+          state.selectedPanelsForMerge.includes(i)
           ? 4
           : 2;
       ctx.strokeRect(panel[0], panel[1], panel[2], panel[3]);
@@ -305,54 +305,85 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function updatePanelsList() {
-    if (!state.comicData || state.comicData.length <= state.currentPageIndex)
-      return;
+    if (!state.comicData || state.comicData.length <= state.currentPageIndex) return;
 
-    elements.panelsList.innerHTML = "";
+    elements.panelsList.innerHTML = '';
     const panels = state.comicData[state.currentPageIndex].panels;
 
-    for (let i = 0; i < panels.length; i++) {
-      const panel = panels[i];
-      const li = document.createElement("li");
-      li.textContent = `Painel ${i + 1}: ${panel[0]}x${panel[1]} (${panel[2]}×${
-        panel[3]
-      })`;
+    panels.forEach((panel, i) => {
+      const li = document.createElement('li');
+      li.textContent = `Painel ${i + 1}: ${panel[0]}x${panel[1]} (${panel[2]}×${panel[3]})`;
       li.dataset.index = i;
 
+      // Sincroniza com as seleções atuais
       if (i === state.selectedPanelIndex) {
-        li.classList.add("active");
+        li.classList.add('active');
       } else if (state.selectedPanelsForMerge.includes(i)) {
-        li.classList.add("merge-selected");
+        li.classList.add('merge-selected');
       }
 
-      // Botões de reordenamento
-      const moveUpBtn = document.createElement("button");
-      moveUpBtn.textContent = "↑";
-      moveUpBtn.className = "move-btn";
-      moveUpBtn.addEventListener("click", function (e) {
+      li.addEventListener('click', function (e) {
+        if (e.target.tagName === 'BUTTON') return;
+
+        const index = parseInt(this.dataset.index);
+
+        // Simula o mesmo comportamento do clique na imagem
+        const mockEvent = {
+          ctrlKey: e.ctrlKey,
+          metaKey: e.metaKey,
+          shiftKey: e.shiftKey
+        };
+
+        // Atualiza o estado como se tivesse clicado na imagem
+        if (state.isMergeMode) {
+          if (mockEvent.ctrlKey || mockEvent.metaKey) {
+            const idx = state.selectedPanelsForMerge.indexOf(index);
+            if (idx === -1) {
+              state.selectedPanelsForMerge.push(index);
+            } else {
+              state.selectedPanelsForMerge.splice(idx, 1);
+            }
+          } else if (mockEvent.shiftKey && state.selectedPanelsForMerge.length > 0) {
+            const lastSelected = Math.max(...state.selectedPanelsForMerge);
+            const start = Math.min(lastSelected, index);
+            const end = Math.max(lastSelected, index);
+            state.selectedPanelsForMerge = [];
+            for (let i = start; i <= end; i++) {
+              state.selectedPanelsForMerge.push(i);
+            }
+          } else {
+            state.selectedPanelsForMerge = [index];
+          }
+          state.selectedPanelIndex = -1;
+        } else {
+          state.selectedPanelIndex = index;
+          state.selectedPanelsForMerge = [];
+        }
+
+        displayCurrentPage();
+      });
+
+      // Botões de mover (mantidos)
+      const moveUpBtn = document.createElement('button');
+      moveUpBtn.textContent = '↑';
+      moveUpBtn.className = 'move-btn';
+      moveUpBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         movePanelUp(i);
       });
 
-      const moveDownBtn = document.createElement("button");
-      moveDownBtn.textContent = "↓";
-      moveDownBtn.className = "move-btn";
-      moveDownBtn.addEventListener("click", function (e) {
+      const moveDownBtn = document.createElement('button');
+      moveDownBtn.textContent = '↓';
+      moveDownBtn.className = 'move-btn';
+      moveDownBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         movePanelDown(i);
-      });
-
-      li.addEventListener("click", function (e) {
-        if (e.target.tagName === "BUTTON") return;
-
-        const index = parseInt(this.dataset.index);
-        handlePanelSelection(index, e);
       });
 
       li.prepend(moveDownBtn);
       li.prepend(moveUpBtn);
       elements.panelsList.appendChild(li);
-    }
+    });
   }
 
   function handlePanelSelection(index, event) {
@@ -568,26 +599,73 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   function handleCanvasMouseDown(e) {
-    if (!state.comicData || state.comicData.length <= state.currentPageIndex)
-      return;
+    if (!state.comicData || state.comicData.length <= state.currentPageIndex) return;
 
     const coords = getImageCoords(e.clientX, e.clientY);
     state.startX = coords.x;
     state.startY = coords.y;
 
     if (state.isDrawMode) {
+      // Modo desenho
       state.isDrawing = true;
       saveState();
-
-      // Cria novo painel com valores inteiros
       state.comicData[state.currentPageIndex].panels.push([
         Math.floor(state.startX),
         Math.floor(state.startY),
-        0, // width
-        0 // height
+        0, 0
       ]);
-      state.selectedPanelIndex =
-        state.comicData[state.currentPageIndex].panels.length - 1;
+      state.selectedPanelIndex = state.comicData[state.currentPageIndex].panels.length - 1;
+    } else {
+      // Modo seleção - comportamento melhorado
+      const panels = state.comicData[state.currentPageIndex].panels;
+      let clickedPanelIndex = -1;
+
+      // Verifica de trás para frente (painéis no topo primeiro)
+      for (let i = panels.length - 1; i >= 0; i--) {
+        const panel = panels[i];
+        if (state.startX >= panel[0] && state.startX <= panel[0] + panel[2] &&
+          state.startY >= panel[1] && state.startY <= panel[1] + panel[3]) {
+          clickedPanelIndex = i;
+          break;
+        }
+      }
+
+      if (clickedPanelIndex !== -1) {
+        if (state.isMergeMode) {
+          // Modo merge - seleção múltipla com Ctrl/Shift
+          if (e.ctrlKey || e.metaKey) {
+            const index = state.selectedPanelsForMerge.indexOf(clickedPanelIndex);
+            if (index === -1) {
+              state.selectedPanelsForMerge.push(clickedPanelIndex);
+            } else {
+              state.selectedPanelsForMerge.splice(index, 1);
+            }
+          } else if (e.shiftKey && state.selectedPanelsForMerge.length > 0) {
+            // Seleção por intervalo com Shift
+            const lastSelected = Math.max(...state.selectedPanelsForMerge);
+            const start = Math.min(lastSelected, clickedPanelIndex);
+            const end = Math.max(lastSelected, clickedPanelIndex);
+            state.selectedPanelsForMerge = [];
+            for (let i = start; i <= end; i++) {
+              state.selectedPanelsForMerge.push(i);
+            }
+          } else {
+            // Clique simples - seleção única
+            state.selectedPanelsForMerge = [clickedPanelIndex];
+          }
+          state.selectedPanelIndex = -1;
+        } else {
+          // Modo normal - seleção única
+          state.selectedPanelIndex = clickedPanelIndex;
+          state.selectedPanelsForMerge = [];
+        }
+      } else {
+        // Clicou fora de qualquer painel
+        if (!state.isMergeMode) {
+          state.selectedPanelIndex = -1;
+        }
+        state.selectedPanelsForMerge = [];
+      }
     }
 
     displayCurrentPage();
@@ -631,7 +709,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       const panel =
         state.comicData[state.currentPageIndex].panels[
-          state.selectedPanelIndex
+        state.selectedPanelIndex
         ];
 
       // Remover painel se for muito pequeno
@@ -801,9 +879,8 @@ document.addEventListener("DOMContentLoaded", function () {
       elements.pageInfo.textContent = "Nenhum arquivo carregado";
       return;
     }
-    elements.pageInfo.textContent = `Página ${state.currentPageIndex + 1} de ${
-      state.comicData.length
-    }`;
+    elements.pageInfo.textContent = `Página ${state.currentPageIndex + 1} de ${state.comicData.length
+      }`;
   }
 
   function saveState() {
