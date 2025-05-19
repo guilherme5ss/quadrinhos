@@ -281,11 +281,11 @@ document.addEventListener("DOMContentLoaded", function () {
         i === state.selectedPanelIndex
           ? "#FF0000"
           : state.selectedPanelsForMerge.includes(i)
-            ? "#FF8C00"
-            : "#00FF00";
+          ? "#FF8C00"
+          : "#00FF00";
       ctx.lineWidth =
         i === state.selectedPanelIndex ||
-          state.selectedPanelsForMerge.includes(i)
+        state.selectedPanelsForMerge.includes(i)
           ? 4
           : 2;
       ctx.strokeRect(panel[0], panel[1], panel[2], panel[3]);
@@ -314,8 +314,9 @@ document.addEventListener("DOMContentLoaded", function () {
     for (let i = 0; i < panels.length; i++) {
       const panel = panels[i];
       const li = document.createElement("li");
-      li.textContent = `Painel ${i + 1}: ${panel[0]}x${panel[1]} (${panel[2]}×${panel[3]
-        })`;
+      li.textContent = `Painel ${i + 1}: ${panel[0]}x${panel[1]} (${panel[2]}×${
+        panel[3]
+      })`;
       li.dataset.index = i;
 
       if (i === state.selectedPanelIndex) {
@@ -445,9 +446,12 @@ document.addEventListener("DOMContentLoaded", function () {
     elements.drawModeBtn.classList.toggle("active");
 
     if (state.isDrawMode) {
+      elements.canvas.classList.add("canvas-draw-mode");
       state.isMergeMode = false;
       elements.mergePanelsBtn.classList.remove("active");
       state.selectedPanelsForMerge = [];
+    } else {
+      elements.canvas.classList.remove("canvas-draw-mode");
     }
 
     updateButtonStates();
@@ -567,56 +571,26 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!state.comicData || state.comicData.length <= state.currentPageIndex)
       return;
 
-    const rect = elements.canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+    const coords = getImageCoords(e.clientX, e.clientY);
+    state.startX = coords.x;
+    state.startY = coords.y;
 
     if (state.isDrawMode) {
-      // Modo desenho - iniciar novo painel
-      state.startX = mouseX;
-      state.startY = mouseY;
       state.isDrawing = true;
-
       saveState();
+
+      // Cria novo painel com valores inteiros
       state.comicData[state.currentPageIndex].panels.push([
-        Math.max(0, Math.min(state.startX, elements.canvas.width)),
-        Math.max(0, Math.min(state.startY, elements.canvas.height)),
-        0,
-        0
+        Math.floor(state.startX),
+        Math.floor(state.startY),
+        0, // width
+        0 // height
       ]);
       state.selectedPanelIndex =
         state.comicData[state.currentPageIndex].panels.length - 1;
-      displayCurrentPage();
-    } else {
-      // Verificar clique em painel existente
-      const panels = state.comicData[state.currentPageIndex].panels;
-      let clickedPanel = -1;
-
-      // Verificar de trás para frente (painéis no topo primeiro)
-      for (let i = panels.length - 1; i >= 0; i--) {
-        const panel = panels[i];
-        if (
-          mouseX >= panel[0] &&
-          mouseX <= panel[0] + panel[2] &&
-          mouseY >= panel[1] &&
-          mouseY <= panel[1] + panel[3]
-        ) {
-          clickedPanel = i;
-          break;
-        }
-      }
-
-      if (clickedPanel !== -1) {
-        handlePanelSelection(clickedPanel, e);
-      } else {
-        // Clicou fora de qualquer painel
-        if (!state.isMergeMode) {
-          state.selectedPanelIndex = -1;
-        }
-        state.selectedPanelsForMerge = [];
-        displayCurrentPage();
-      }
     }
+
+    displayCurrentPage();
   }
 
   function handleCanvasMouseMove(e) {
@@ -627,25 +601,20 @@ document.addEventListener("DOMContentLoaded", function () {
     )
       return;
 
-    const rect = elements.canvas.getBoundingClientRect();
-    const mouseX = Math.max(
-      0,
-      Math.min(e.clientX - rect.left, elements.canvas.width)
-    );
-    const mouseY = Math.max(
-      0,
-      Math.min(e.clientY - rect.top, elements.canvas.height)
-    );
+    const coords = getImageCoords(e.clientX, e.clientY);
+    const mouseX = Math.max(0, Math.min(coords.x, elements.canvas.width));
+    const mouseY = Math.max(0, Math.min(coords.y, elements.canvas.height));
 
     const panel =
       state.comicData[state.currentPageIndex].panels[state.selectedPanelIndex];
 
-    panel[0] = Math.min(state.startX, mouseX);
-    panel[1] = Math.min(state.startY, mouseY);
-    panel[2] = Math.abs(mouseX - state.startX);
-    panel[3] = Math.abs(mouseY - state.startY);
+    // Garante valores inteiros e dentro dos limites
+    panel[0] = Math.floor(Math.min(state.startX, mouseX));
+    panel[1] = Math.floor(Math.min(state.startY, mouseY));
+    panel[2] = Math.floor(Math.abs(mouseX - state.startX));
+    panel[3] = Math.floor(Math.abs(mouseY - state.startY));
 
-    // Garantir que não ultrapasse os limites do canvas
+    // Garante que não ultrapasse os limites do canvas
     if (panel[0] + panel[2] > elements.canvas.width) {
       panel[2] = elements.canvas.width - panel[0];
     }
@@ -662,7 +631,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       const panel =
         state.comicData[state.currentPageIndex].panels[
-        state.selectedPanelIndex
+          state.selectedPanelIndex
         ];
 
       // Remover painel se for muito pequeno
@@ -759,7 +728,7 @@ document.addEventListener("DOMContentLoaded", function () {
       x,
       y,
       width,
-      height,
+      height
     ];
     displayCurrentPage();
   }
@@ -832,7 +801,9 @@ document.addEventListener("DOMContentLoaded", function () {
       elements.pageInfo.textContent = "Nenhum arquivo carregado";
       return;
     }
-    elements.pageInfo.textContent = `Página ${state.currentPageIndex + 1} de ${state.comicData.length}`;
+    elements.pageInfo.textContent = `Página ${state.currentPageIndex + 1} de ${
+      state.comicData.length
+    }`;
   }
 
   function saveState() {
@@ -845,7 +816,7 @@ document.addEventListener("DOMContentLoaded", function () {
       comicData: JSON.parse(JSON.stringify(state.comicData)),
       currentPageIndex: state.currentPageIndex,
       selectedPanelIndex: state.selectedPanelIndex,
-      selectedPanelsForMerge: [...state.selectedPanelsForMerge],
+      selectedPanelsForMerge: [...state.selectedPanelsForMerge]
     };
 
     state.history.push(newState);

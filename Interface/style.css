@@ -328,7 +328,10 @@ h1 {
   padding: 5px 10px;
   border-radius: 4px;
   font-family: monospace;
-  pointer-events: none;
-  /* Permite clicar através do elemento */
+  pointer-events: none; /* Permite clicar através do elemento */
   z-index: 10;
+}
+
+.canvas-draw-mode {
+  cursor: crosshair;
 }
