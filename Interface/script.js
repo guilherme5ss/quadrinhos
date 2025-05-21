@@ -1254,13 +1254,23 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
+    // Obtém o nome do arquivo original do input
+    const originalFileName =
+      elements.jsonInput.files[0]?.name || "comic_panels";
+
+    // Remove a extensão .json se existir
+    const fileNameWithoutExt = originalFileName.replace(/\.json$/i, "");
+
+    // Cria o nome do arquivo de saída
+    const outputFileName = `${fileNameWithoutExt}_edit.json`;
+
     const jsonStr = JSON.stringify(state.comicData, null, 2);
     const blob = new Blob([jsonStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = "comic_panels_modified.json";
+    a.download = outputFileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
