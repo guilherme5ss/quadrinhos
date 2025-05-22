@@ -817,50 +817,69 @@ document.addEventListener("DOMContentLoaded", function () {
     displayCurrentPage();
   }
 
+  function getGlobalCoords(e) {
+    return {
+      x: e.clientX,
+      y: e.clientY
+    };
+  }
+
   function handleCanvasMouseMove(e) {
+    // Obter coordenadas globais do mouse
+    const globalCoords = getGlobalCoords(e);
+    const rect = elements.canvas.getBoundingClientRect();
+
+    // Calcular coordenadas relativas ao canvas, mesmo quando o mouse está fora
+    let canvasX =
+      (globalCoords.x - rect.left) * (elements.canvas.width / rect.width);
+    let canvasY =
+      (globalCoords.y - rect.top) * (elements.canvas.height / rect.height);
+
+    // Limitar às bordas do canvas
+    canvasX = Math.max(0, Math.min(canvasX, elements.canvas.width));
+    canvasY = Math.max(0, Math.min(canvasY, elements.canvas.height));
+
+    // Arredondar para valores inteiros
+    const x = Math.floor(canvasX);
+    const y = Math.floor(canvasY);
+
     if (state.isDrawing) {
-      const rect = elements.canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-
-      // Verifica se o mouse está dentro dos limites do canvas
-      const isInside =
-        mouseX >= 0 &&
-        mouseX <= rect.width &&
-        mouseY >= 0 &&
-        mouseY <= rect.height;
-
-      if (isInside) {
-        const coords = getImageCoords(e.clientX, e.clientY);
-        updateDrawingPanel(coords.x, coords.y);
-      } else {
-        // Atualiza com as coordenadas no limite do canvas
-        const boundedX = Math.max(0, Math.min(mouseX, rect.width));
-        const boundedY = Math.max(0, Math.min(mouseY, rect.height));
-        const coords = getImageCoords(
-          boundedX + rect.left,
-          boundedY + rect.top
-        );
-        updateDrawingPanel(coords.x, coords.y);
-      }
-    } else if (state.resizingHandle) {
-      const coords = getImageCoords(e.clientX, e.clientY);
+      // Modo desenho - atualizar o painel sendo criado
       const panel =
         state.comicData[state.currentPageIndex].panels[
         state.selectedPanelIndex
         ];
 
-      // Mantém valores mínimos de tamanho
-      const MIN_SIZE = 20;
+      panel[0] = Math.min(state.startX, x);
+      panel[1] = Math.min(state.startY, y);
+      panel[2] = Math.abs(x - state.startX);
+      panel[3] = Math.abs(y - state.startY);
+
+      // Garantir que não ultrapasse os limites do canvas
+      if (panel[0] + panel[2] > elements.canvas.width) {
+        panel[2] = elements.canvas.width - panel[0];
+      }
+      if (panel[1] + panel[3] > elements.canvas.height) {
+        panel[3] = elements.canvas.height - panel[1];
+      }
+
+      displayCurrentPage();
+    } else if (state.resizingHandle) {
+      // Modo redimensionamento - atualizar o painel sendo redimensionado
+      const panel =
+        state.comicData[state.currentPageIndex].panels[
+        state.selectedPanelIndex
+        ];
+      const MIN_SIZE = 20; // Tamanho mínimo do painel
 
       switch (state.resizingHandle) {
         case HANDLE_TYPES.TOP_LEFT:
           panel[0] = Math.min(
-            coords.x,
+            x,
             state.originalPanelState[0] + state.originalPanelState[2] - MIN_SIZE
           );
           panel[1] = Math.min(
-            coords.y,
+            y,
             state.originalPanelState[1] + state.originalPanelState[3] - MIN_SIZE
           );
           panel[2] =
@@ -875,10 +894,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
         case HANDLE_TYPES.TOP_RIGHT:
           panel[1] = Math.min(
-            coords.y,
+            y,
             state.originalPanelState[1] + state.originalPanelState[3] - MIN_SIZE
           );
-          panel[2] = Math.max(MIN_SIZE, coords.x - state.originalPanelState[0]);
+          panel[2] = Math.max(MIN_SIZE, x - state.originalPanelState[0]);
           panel[3] =
             state.originalPanelState[1] +
             state.originalPanelState[3] -
@@ -887,24 +906,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
         case HANDLE_TYPES.BOTTOM_LEFT:
           panel[0] = Math.min(
-            coords.x,
+            x,
             state.originalPanelState[0] + state.originalPanelState[2] - MIN_SIZE
           );
           panel[2] =
             state.originalPanelState[0] +
             state.originalPanelState[2] -
             panel[0];
-          panel[3] = Math.max(MIN_SIZE, coords.y - state.originalPanelState[1]);
+          panel[3] = Math.max(MIN_SIZE, y - state.originalPanelState[1]);
           break;
 
         case HANDLE_TYPES.BOTTOM_RIGHT:
-          panel[2] = Math.max(MIN_SIZE, coords.x - state.originalPanelState[0]);
-          panel[3] = Math.max(MIN_SIZE, coords.y - state.originalPanelState[1]);
+          panel[2] = Math.max(MIN_SIZE, x - state.originalPanelState[0]);
+          panel[3] = Math.max(MIN_SIZE, y - state.originalPanelState[1]);
           break;
 
         case HANDLE_TYPES.TOP:
           panel[1] = Math.min(
-            coords.y,
+            y,
             state.originalPanelState[1] + state.originalPanelState[3] - MIN_SIZE
           );
           panel[3] =
@@ -914,16 +933,16 @@ document.addEventListener("DOMContentLoaded", function () {
           break;
 
         case HANDLE_TYPES.RIGHT:
-          panel[2] = Math.max(MIN_SIZE, coords.x - state.originalPanelState[0]);
+          panel[2] = Math.max(MIN_SIZE, x - state.originalPanelState[0]);
           break;
 
         case HANDLE_TYPES.BOTTOM:
-          panel[3] = Math.max(MIN_SIZE, coords.y - state.originalPanelState[1]);
+          panel[3] = Math.max(MIN_SIZE, y - state.originalPanelState[1]);
           break;
 
         case HANDLE_TYPES.LEFT:
           panel[0] = Math.min(
-            coords.x,
+            x,
             state.originalPanelState[0] + state.originalPanelState[2] - MIN_SIZE
           );
           panel[2] =
@@ -935,7 +954,45 @@ document.addEventListener("DOMContentLoaded", function () {
 
       displayCurrentPage();
     }
+
+    // Atualizar display de coordenadas do mouse
+    state.mousePosition = { x, y };
+    updateMouseCoordsDisplay();
   }
+
+  document.addEventListener("mousemove", (e) => {
+    if (state.isDrawing || state.resizingHandle) {
+      handleCanvasMouseMove(e);
+    }
+  });
+
+  document.addEventListener("mouseup", () => {
+    if (state.isDrawing) {
+      state.isDrawing = false;
+
+      const panel =
+        state.comicData[state.currentPageIndex].panels[
+        state.selectedPanelIndex
+        ];
+
+      // Remove painel se for muito pequeno
+      if (panel[2] < 10 || panel[3] < 10) {
+        state.comicData[state.currentPageIndex].panels.splice(
+          state.selectedPanelIndex,
+          1
+        );
+        state.selectedPanelIndex = -1;
+      }
+
+      displayCurrentPage();
+    }
+
+    if (state.resizingHandle) {
+      state.resizingHandle = null;
+      state.originalPanelState = null;
+      saveState();
+    }
+  });
 
   function handleCanvasMouseUp() {
     if (state.isDrawing) {
