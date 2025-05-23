@@ -365,3 +365,7 @@ h1 {
 .canvas-resize-handle-right {
   cursor: ew-resize;
 }
+
+#comic-canvas.canvas-moving:active {
+  cursor: grabbing;
+}
