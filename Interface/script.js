@@ -825,139 +825,126 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function handleCanvasMouseMove(e) {
-    // Obter coordenadas globais do mouse
-    const globalCoords = getGlobalCoords(e);
-    const rect = elements.canvas.getBoundingClientRect();
+    const coords = getImageCoords(e.clientX, e.clientY);
+    state.mousePosition = { x: coords.x, y: coords.y };
+    updateMouseCoordsDisplay();
 
-    // Calcular coordenadas relativas ao canvas, mesmo quando o mouse está fora
+    const rect = elements.canvas.getBoundingClientRect();
+    const globalCoords = getGlobalCoords(e);
+
     let canvasX =
       (globalCoords.x - rect.left) * (elements.canvas.width / rect.width);
     let canvasY =
       (globalCoords.y - rect.top) * (elements.canvas.height / rect.height);
 
-    // Limitar às bordas do canvas
-    canvasX = Math.max(0, Math.min(canvasX, elements.canvas.width));
-    canvasY = Math.max(0, Math.min(canvasY, elements.canvas.height));
+    canvasX = Math.floor(Math.max(0, Math.min(canvasX, elements.canvas.width)));
+    canvasY = Math.floor(
+      Math.max(0, Math.min(canvasY, elements.canvas.height))
+    );
 
-    // Arredondar para valores inteiros
-    const x = Math.floor(canvasX);
-    const y = Math.floor(canvasY);
+    const panel =
+      state.comicData[state.currentPageIndex].panels[state.selectedPanelIndex];
 
     if (state.isDrawing) {
-      // Modo desenho - atualizar o painel sendo criado
-      const panel =
-        state.comicData[state.currentPageIndex].panels[
-        state.selectedPanelIndex
-        ];
-
-      panel[0] = Math.min(state.startX, x);
-      panel[1] = Math.min(state.startY, y);
-      panel[2] = Math.abs(x - state.startX);
-      panel[3] = Math.abs(y - state.startY);
-
-      // Garantir que não ultrapasse os limites do canvas
-      if (panel[0] + panel[2] > elements.canvas.width) {
-        panel[2] = elements.canvas.width - panel[0];
-      }
-      if (panel[1] + panel[3] > elements.canvas.height) {
-        panel[3] = elements.canvas.height - panel[1];
-      }
+      panel[0] = Math.min(state.startX, canvasX);
+      panel[1] = Math.min(state.startY, canvasY);
+      panel[2] = Math.abs(canvasX - state.startX);
+      panel[3] = Math.abs(canvasY - state.startY);
 
       displayCurrentPage();
     } else if (state.resizingHandle) {
-      // Modo redimensionamento - atualizar o painel sendo redimensionado
-      const panel =
-        state.comicData[state.currentPageIndex].panels[
-        state.selectedPanelIndex
-        ];
-      const MIN_SIZE = 20; // Tamanho mínimo do painel
+      const origLeft = state.originalPanelState[0];
+      const origTop = state.originalPanelState[1];
+      const origRight = origLeft + state.originalPanelState[2];
+      const origBottom = origTop + state.originalPanelState[3];
+
+      let newLeft = origLeft,
+        newTop = origTop,
+        newRight = origRight,
+        newBottom = origBottom;
 
       switch (state.resizingHandle) {
         case HANDLE_TYPES.TOP_LEFT:
-          panel[0] = Math.min(
-            x,
-            state.originalPanelState[0] + state.originalPanelState[2] - MIN_SIZE
-          );
-          panel[1] = Math.min(
-            y,
-            state.originalPanelState[1] + state.originalPanelState[3] - MIN_SIZE
-          );
-          panel[2] =
-            state.originalPanelState[0] +
-            state.originalPanelState[2] -
-            panel[0];
-          panel[3] =
-            state.originalPanelState[1] +
-            state.originalPanelState[3] -
-            panel[1];
+          newLeft = canvasX;
+          newTop = canvasY;
           break;
 
         case HANDLE_TYPES.TOP_RIGHT:
-          panel[1] = Math.min(
-            y,
-            state.originalPanelState[1] + state.originalPanelState[3] - MIN_SIZE
-          );
-          panel[2] = Math.max(MIN_SIZE, x - state.originalPanelState[0]);
-          panel[3] =
-            state.originalPanelState[1] +
-            state.originalPanelState[3] -
-            panel[1];
+          newRight = canvasX;
+          newTop = canvasY;
           break;
 
         case HANDLE_TYPES.BOTTOM_LEFT:
-          panel[0] = Math.min(
-            x,
-            state.originalPanelState[0] + state.originalPanelState[2] - MIN_SIZE
-          );
-          panel[2] =
-            state.originalPanelState[0] +
-            state.originalPanelState[2] -
-            panel[0];
-          panel[3] = Math.max(MIN_SIZE, y - state.originalPanelState[1]);
+          newLeft = canvasX;
+          newBottom = canvasY;
           break;
 
         case HANDLE_TYPES.BOTTOM_RIGHT:
-          panel[2] = Math.max(MIN_SIZE, x - state.originalPanelState[0]);
-          panel[3] = Math.max(MIN_SIZE, y - state.originalPanelState[1]);
+          newRight = canvasX;
+          newBottom = canvasY;
           break;
 
         case HANDLE_TYPES.TOP:
-          panel[1] = Math.min(
-            y,
-            state.originalPanelState[1] + state.originalPanelState[3] - MIN_SIZE
-          );
-          panel[3] =
-            state.originalPanelState[1] +
-            state.originalPanelState[3] -
-            panel[1];
+          newTop = canvasY;
           break;
 
         case HANDLE_TYPES.RIGHT:
-          panel[2] = Math.max(MIN_SIZE, x - state.originalPanelState[0]);
+          newRight = canvasX;
           break;
 
         case HANDLE_TYPES.BOTTOM:
-          panel[3] = Math.max(MIN_SIZE, y - state.originalPanelState[1]);
+          newBottom = canvasY;
           break;
 
         case HANDLE_TYPES.LEFT:
-          panel[0] = Math.min(
-            x,
-            state.originalPanelState[0] + state.originalPanelState[2] - MIN_SIZE
-          );
-          panel[2] =
-            state.originalPanelState[0] +
-            state.originalPanelState[2] -
-            panel[0];
+          newLeft = canvasX;
           break;
       }
 
+      // Corrige direção para evitar negativos
+      const left = Math.min(newLeft, newRight);
+      const right = Math.max(newLeft, newRight);
+      const top = Math.min(newTop, newBottom);
+      const bottom = Math.max(newTop, newBottom);
+
+      panel[0] = left;
+      panel[1] = top;
+      panel[2] = right - left;
+      panel[3] = bottom - top;
+
+      // Aplica tamanho mínimo
+      const MIN_SIZE = 20;
+
+      if (panel[2] < MIN_SIZE) {
+        if (
+          state.resizingHandle === HANDLE_TYPES.LEFT ||
+          state.resizingHandle === HANDLE_TYPES.TOP_LEFT ||
+          state.resizingHandle === HANDLE_TYPES.BOTTOM_LEFT
+        ) {
+          panel[0] = panel[0] + panel[2] - MIN_SIZE;
+        }
+        panel[2] = MIN_SIZE;
+      }
+
+      if (panel[3] < MIN_SIZE) {
+        if (
+          state.resizingHandle === HANDLE_TYPES.TOP ||
+          state.resizingHandle === HANDLE_TYPES.TOP_LEFT ||
+          state.resizingHandle === HANDLE_TYPES.TOP_RIGHT
+        ) {
+          panel[1] = panel[1] + panel[3] - MIN_SIZE;
+        }
+        panel[3] = MIN_SIZE;
+      }
+
+      // Garante que não ultrapasse canvas
+      panel[0] = Math.max(0, Math.min(panel[0], elements.canvas.width));
+      panel[1] = Math.max(0, Math.min(panel[1], elements.canvas.height));
+      panel[2] = Math.min(panel[2], elements.canvas.width - panel[0]);
+      panel[3] = Math.min(panel[3], elements.canvas.height - panel[1]);
+
       displayCurrentPage();
     }
-
-    // Atualizar display de coordenadas do mouse
-    state.mousePosition = { x, y };
-    updateMouseCoordsDisplay();
   }
 
   document.addEventListener("mousemove", (e) => {
@@ -995,21 +982,58 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   function handleCanvasMouseUp() {
-    if (state.isDrawing) {
-      state.isDrawing = false;
-
+    if (state.resizingHandle) {
       const panel =
         state.comicData[state.currentPageIndex].panels[
         state.selectedPanelIndex
         ];
+      const MIN_SIZE = 20;
 
-      // Remove painel se for muito pequeno
-      if (panel[2] < 10 || panel[3] < 10) {
-        state.comicData[state.currentPageIndex].panels.splice(
-          state.selectedPanelIndex,
-          1
-        );
-        state.selectedPanelIndex = -1;
+      // Converte todos valores para inteiros
+      panel[0] = Math.floor(panel[0]);
+      panel[1] = Math.floor(panel[1]);
+      panel[2] = Math.floor(panel[2]);
+      panel[3] = Math.floor(panel[3]);
+
+      // Validação do tamanho mínimo mantendo a direção do redimensionamento
+      if (panel[2] < MIN_SIZE) {
+        const diff = MIN_SIZE - panel[2];
+        if (state.resizingHandle.includes("left")) {
+          panel[0] -= diff;
+        }
+        panel[2] = MIN_SIZE;
+      }
+
+      if (panel[3] < MIN_SIZE) {
+        const diff = MIN_SIZE - panel[3];
+        if (state.resizingHandle.includes("top")) {
+          panel[1] -= diff;
+        }
+        panel[3] = MIN_SIZE;
+      }
+
+      // Garante que o painel não saia dos limites do canvas
+      panel[0] = Math.max(
+        0,
+        Math.min(panel[0], elements.canvas.width - MIN_SIZE)
+      );
+      panel[1] = Math.max(
+        0,
+        Math.min(panel[1], elements.canvas.height - MIN_SIZE)
+      );
+      panel[2] = Math.min(panel[2], elements.canvas.width - panel[0]);
+      panel[3] = Math.min(panel[3], elements.canvas.height - panel[1]);
+
+      // Mantém o painel redimensionado se for válido
+      if (panel[2] > 0 && panel[3] > 0) {
+        state.resizingHandle = null;
+        state.originalPanelState = null;
+        saveState();
+      } else {
+        // Reverte se for inválido (não deveria acontecer com as validações acima)
+        state.comicData[state.currentPageIndex].panels[
+          state.selectedPanelIndex
+        ] = [...state.originalPanelState];
       }
 
       displayCurrentPage();
