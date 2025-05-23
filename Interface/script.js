@@ -53,7 +53,10 @@ document.addEventListener("DOMContentLoaded", function () {
     effectSize: 64, // Tamanho/intensidade do efeito
     mousePosition: { x: 0, y: 0 }, // Novo estado para armazenar posição do mouse
     resizingHandle: null,
-    originalPanelState: null
+    originalPanelState: null,
+    draggingPanel: false,
+    dragStartX: 0,
+    dragStartY: 0
   };
 
   // Inicialização
@@ -409,6 +412,7 @@ document.addEventListener("DOMContentLoaded", function () {
     updatePropertiesForm();
     updateButtonStates();
 
+    elements.canvas.classList.toggle("canvas-moving", state.draggingPanel);
     // Posiciona o display de coordenadas
     elements.mouseCoordsDisplay.style.display = "block";
     updateMouseCoordsDisplay();
@@ -739,19 +743,31 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Verifica primeiro se clicou em uma alça do painel selecionado
     if (state.selectedPanelIndex !== -1) {
-      const selectedPanel =
+      const panel =
         state.comicData[state.currentPageIndex].panels[
         state.selectedPanelIndex
         ];
-      state.resizingHandle = getHandleAtPosition(
-        selectedPanel,
-        coords.x,
-        coords.y
-      );
+
+      // Verifica se clicou em uma alça de redimensionamento
+      state.resizingHandle = getHandleAtPosition(panel, coords.x, coords.y);
 
       if (state.resizingHandle) {
-        state.originalPanelState = [...selectedPanel];
-        e.preventDefault();
+        state.originalPanelState = [...panel];
+        return;
+      }
+
+      // Verifica se clicou no centro do painel (área não-alça)
+      const centerX = panel[0] + panel[2] / 2;
+      const centerY = panel[1] + panel[3] / 2;
+      const isNearCenter =
+        Math.abs(coords.x - centerX) < panel[2] / 2 - HANDLE_SIZE &&
+        Math.abs(coords.y - centerY) < panel[3] / 2 - HANDLE_SIZE;
+
+      if (isNearCenter) {
+        state.draggingPanel = true;
+        state.dragStartX = coords.x;
+        state.dragStartY = coords.y;
+        state.originalPanelState = [...panel];
         return;
       }
     }
@@ -944,6 +960,32 @@ document.addEventListener("DOMContentLoaded", function () {
       panel[3] = Math.min(panel[3], elements.canvas.height - panel[1]);
 
       displayCurrentPage();
+    } else if (state.draggingPanel) {
+      const coords = getImageCoords(e.clientX, e.clientY);
+      const panel =
+        state.comicData[state.currentPageIndex].panels[
+        state.selectedPanelIndex
+        ];
+
+      // Calcula nova posição mantendo valores inteiros
+      panel[0] = Math.floor(
+        state.originalPanelState[0] + (coords.x - state.dragStartX)
+      );
+      panel[1] = Math.floor(
+        state.originalPanelState[1] + (coords.y - state.dragStartY)
+      );
+
+      // Mantém dentro dos limites do canvas
+      panel[0] = Math.max(
+        0,
+        Math.min(panel[0], elements.canvas.width - panel[2])
+      );
+      panel[1] = Math.max(
+        0,
+        Math.min(panel[1], elements.canvas.height - panel[3])
+      );
+
+      displayCurrentPage();
     }
   }
 
@@ -1042,6 +1084,10 @@ document.addEventListener("DOMContentLoaded", function () {
       state.resizingHandle = null;
       state.originalPanelState = null;
       saveState(); // Salva o estado após redimensionamento
+    }
+    if (state.draggingPanel) {
+      state.draggingPanel = false;
+      saveState(); // Salva o estado após movimentação
     }
   }
 
