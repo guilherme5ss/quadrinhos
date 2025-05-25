@@ -327,7 +327,8 @@ h1 {
   padding: 5px 10px;
   border-radius: 4px;
   font-family: monospace;
-  pointer-events: none; /* Permite clicar através do elemento */
+  pointer-events: none;
+  /* Permite clicar através do elemento */
   z-index: 10;
 }
 
@@ -352,18 +353,6 @@ h1 {
 #panels-list li.merge-selected {
   background-color: #ffa500;
   color: white;
-}
-
-.canvas-resize-handle {
-  cursor: nwse-resize;
-}
-.canvas-resize-handle-top,
-.canvas-resize-handle-bottom {
-  cursor: ns-resize;
-}
-.canvas-resize-handle-left,
-.canvas-resize-handle-right {
-  cursor: ew-resize;
 }
 
 #comic-canvas.canvas-moving:active {

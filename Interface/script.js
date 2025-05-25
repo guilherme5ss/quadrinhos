@@ -317,18 +317,21 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function getHandleAtPosition(panel, x, y) {
-    const handles = getHandleRects(panel);
+    const BORDER_TOLERANCE = 10; // Distância em pixels para considerar clique na borda
+    const isLeftEdge = Math.abs(x - panel[0]) <= BORDER_TOLERANCE;
+    const isRightEdge = Math.abs(x - (panel[0] + panel[2])) <= BORDER_TOLERANCE;
+    const isTopEdge = Math.abs(y - panel[1]) <= BORDER_TOLERANCE;
+    const isBottomEdge =
+      Math.abs(y - (panel[1] + panel[3])) <= BORDER_TOLERANCE;
 
-    for (const [type, rect] of Object.entries(handles)) {
-      if (
-        x >= rect.x &&
-        x <= rect.x + rect.width &&
-        y >= rect.y &&
-        y <= rect.y + rect.height
-      ) {
-        return type;
-      }
-    }
+    if (isLeftEdge && isTopEdge) return HANDLE_TYPES.TOP_LEFT;
+    if (isRightEdge && isTopEdge) return HANDLE_TYPES.TOP_RIGHT;
+    if (isLeftEdge && isBottomEdge) return HANDLE_TYPES.BOTTOM_LEFT;
+    if (isRightEdge && isBottomEdge) return HANDLE_TYPES.BOTTOM_RIGHT;
+    if (isTopEdge) return HANDLE_TYPES.TOP;
+    if (isRightEdge) return HANDLE_TYPES.RIGHT;
+    if (isBottomEdge) return HANDLE_TYPES.BOTTOM;
+    if (isLeftEdge) return HANDLE_TYPES.LEFT;
 
     return null;
   }
@@ -400,8 +403,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Desenhar os painéis e contornos
     pageData.panels.forEach((panel, i) => {
-      // ... código de desenho existente ...
-
       // Desenhar alças apenas para o painel selecionado
       if (i === state.selectedPanelIndex) {
         drawHandles(panel);
@@ -760,8 +761,8 @@ document.addEventListener("DOMContentLoaded", function () {
       const centerX = panel[0] + panel[2] / 2;
       const centerY = panel[1] + panel[3] / 2;
       const isNearCenter =
-        Math.abs(coords.x - centerX) < panel[2] / 2 - HANDLE_SIZE &&
-        Math.abs(coords.y - centerY) < panel[3] / 2 - HANDLE_SIZE;
+        Math.abs(coords.x - centerX) < panel[2] - HANDLE_SIZE &&
+        Math.abs(coords.y - centerY) < panel[3] - HANDLE_SIZE;
 
       if (isNearCenter) {
         state.draggingPanel = true;
@@ -860,6 +861,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const panel =
       state.comicData[state.currentPageIndex].panels[state.selectedPanelIndex];
+    // DETECÇÃO DO CURSOR DINÂMICO
+    const handle = getResizeHandleUnderMouse(canvasX, canvasY);
+
+    if (handle) {
+      elements.canvas.style.cursor = handle;
+    } else if (state.draggingPanel) {
+      elements.canvas.style.cursor = "grabbing";
+    } else {
+      elements.canvas.style.cursor = "crosshair";
+    }
 
     if (state.isDrawing) {
       panel[0] = Math.min(state.startX, canvasX);
@@ -1103,6 +1114,85 @@ document.addEventListener("DOMContentLoaded", function () {
       const coords = getImageCoords(mouseX + rect.left, mouseY + rect.top);
       updateDrawingPanel(coords.x, coords.y);
     }
+  }
+
+  function getResizeHandleUnderMouse(x, y) {
+    const panel =
+      state.comicData[state.currentPageIndex].panels[state.selectedPanelIndex];
+    const HANDLE_SIZE = 10;
+
+    const left = panel[0];
+    const right = panel[0] + panel[2];
+    const top = panel[1];
+    const bottom = panel[1] + panel[3];
+
+    // Canto superior esquerdo
+    if (Math.abs(x - left) <= HANDLE_SIZE && Math.abs(y - top) <= HANDLE_SIZE) {
+      return "nw-resize";
+    }
+
+    // Canto superior direito
+    if (
+      Math.abs(x - right) <= HANDLE_SIZE &&
+      Math.abs(y - top) <= HANDLE_SIZE
+    ) {
+      return "ne-resize";
+    }
+
+    // Canto inferior esquerdo
+    if (
+      Math.abs(x - left) <= HANDLE_SIZE &&
+      Math.abs(y - bottom) <= HANDLE_SIZE
+    ) {
+      return "sw-resize";
+    }
+
+    // Canto inferior direito
+    if (
+      Math.abs(x - right) <= HANDLE_SIZE &&
+      Math.abs(y - bottom) <= HANDLE_SIZE
+    ) {
+      return "se-resize";
+    }
+
+    // Bordas
+    // Topo
+    if (
+      x >= left + HANDLE_SIZE &&
+      x <= right - HANDLE_SIZE &&
+      Math.abs(y - top) <= HANDLE_SIZE
+    ) {
+      return "n-resize";
+    }
+
+    // Fundo
+    if (
+      x >= left + HANDLE_SIZE &&
+      x <= right - HANDLE_SIZE &&
+      Math.abs(y - bottom) <= HANDLE_SIZE
+    ) {
+      return "s-resize";
+    }
+
+    // Esquerda
+    if (
+      Math.abs(x - left) <= HANDLE_SIZE &&
+      y >= top + HANDLE_SIZE &&
+      y <= bottom - HANDLE_SIZE
+    ) {
+      return "w-resize";
+    }
+
+    // Direita
+    if (
+      Math.abs(x - right) <= HANDLE_SIZE &&
+      y >= top + HANDLE_SIZE &&
+      y <= bottom - HANDLE_SIZE
+    ) {
+      return "e-resize";
+    }
+
+    return null;
   }
 
   function updateDrawingPanel(mouseX, mouseY) {
