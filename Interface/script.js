@@ -761,8 +761,8 @@ document.addEventListener("DOMContentLoaded", function () {
       const centerX = panel[0] + panel[2] / 2;
       const centerY = panel[1] + panel[3] / 2;
       const isNearCenter =
-        Math.abs(coords.x - centerX) < panel[2] - HANDLE_SIZE &&
-        Math.abs(coords.y - centerY) < panel[3] - HANDLE_SIZE;
+        Math.abs(coords.x - centerX) < panel[2]/2 - HANDLE_SIZE &&
+        Math.abs(coords.y - centerY) < panel[3]/2 - HANDLE_SIZE;
 
       if (isNearCenter) {
         state.draggingPanel = true;
