@@ -1,3 +1,93 @@
+// Animações botões, por Mike Quinn.
+// Link Hover Effects w/ mo.js. Fonte: https://codepen.io/mprquinn/pen/OmOMrR
+const links = document.querySelectorAll(".action-buttons button");
+
+links.forEach((link) => link.addEventListener("click", shootLines)); // "mouseenter" ou "click"
+
+function shootLines(e) {
+  const itemDim = this.getBoundingClientRect(),
+    itemSize = {
+      x: itemDim.right - itemDim.left,
+      y: itemDim.bottom - itemDim.top
+    },
+    shapes = ["line", "zigzag"],
+    colors = ["#2FB5F3", "#FF0A47", "#FF0AC2", "#47FF0A"];
+
+  const chosenC = Math.floor(Math.random() * colors.length),
+    chosenS = Math.floor(Math.random() * shapes.length);
+
+  // create shape
+  const burst = new mojs.Burst({
+    left: itemDim.left + itemSize.x / 2,
+    top: itemDim.top + itemSize.y / 2,
+    radiusX: itemSize.x,
+    radiusY: itemSize.y,
+    count: 8,
+
+    children: {
+      shape: shapes[chosenS],
+      radius: 10,
+      scale: { 0.8: 1 },
+      fill: "none",
+      points: 7,
+      stroke: colors[chosenC],
+      strokeDasharray: "100%",
+      strokeDashoffset: { "-100%": "100%" },
+      duration: 350,
+      delay: 100,
+      easing: "quad.out",
+      isShowEnd: false
+    }
+  });
+
+  burst.play();
+}
+
+const button = document.getElementById("blur-mode-btn");
+const openEye = document.getElementById("openEye");
+const closedEye = document.getElementById("closedEye");
+
+let eyeOpen = true;
+
+button.addEventListener("click", () => {
+  // animação de piscar
+  if (eyeOpen) {
+    openEye.classList.add("blink");
+    setTimeout(() => {
+      openEye.style.display = "none";
+      openEye.style.opacity = "0";
+      closedEye.style.display = "block";
+      closedEye.style.opacity = "1";
+    }, 300);
+  } else {
+    closedEye.classList.add("blink");
+    setTimeout(() => {
+      closedEye.style.display = "none";
+      closedEye.style.opacity = "0";
+      openEye.style.display = "block";
+      openEye.style.opacity = "1";
+    }, 300);
+  }
+
+  // efeito de quadrinhos (centralizado)
+  const effect = document.createElement("div");
+  effect.className = "comic-effect";
+  effect.textContent = "*PISC*";
+  button.querySelector(".eye-container").appendChild(effect);
+  setTimeout(() => {
+    effect.remove();
+  }, 400);
+
+  // troca de estado
+  eyeOpen = !eyeOpen;
+
+  // remove a classe de animação após completar
+  setTimeout(() => {
+    openEye.classList.remove("blink");
+    closedEye.classList.remove("blink");
+  }, 600);
+});
+
 const HANDLE_SIZE = 16;
 const HANDLE_TYPES = {
   TOP_LEFT: "top-left",
@@ -26,9 +116,9 @@ document.addEventListener("DOMContentLoaded", function () {
     addPanelBtn: document.getElementById("add-panel-btn"),
     prevPageBtn: document.getElementById("prev-page-btn"),
     nextPageBtn: document.getElementById("next-page-btn"),
-    pageInfo: document.getElementById("page-info"),
     blurModeBtn: document.getElementById("blur-mode-btn"),
-    mouseCoordsDisplay: document.getElementById("mouse-coords")
+    mouseCoordsDisplay: document.getElementById("mouse-coords"),
+    pageSelect: document.getElementById("page-select")
   };
 
   const ctx = elements.canvas.getContext("2d");
@@ -48,7 +138,7 @@ document.addEventListener("DOMContentLoaded", function () {
     startY: 0,
     history: [],
     historyIndex: -1,
-    effectMode: false, // true para ativar o efeito, false para desativar
+    effectMode: true, // true para ativar o efeito, false para desativar
     effectType: "pixelate", // 'blur' ou 'pixelate'
     effectSize: 64, // Tamanho/intensidade do efeito
     mousePosition: { x: 0, y: 0 }, // Novo estado para armazenar posição do mouse
@@ -58,6 +148,23 @@ document.addEventListener("DOMContentLoaded", function () {
     dragStartX: 0,
     dragStartY: 0
   };
+
+  const buttons = document.querySelectorAll(".action-buttons button");
+
+  function setRandomRotation(button) {
+    num = 5; // Rotação de -num a num graus
+    const randomDeg = Math.random() * (num * 2) - num;
+    button.style.transform = `rotate(${randomDeg}deg)`;
+  }
+
+  buttons.forEach((button) => {
+    // Ao entrar com o mouse: aplica rotação aleatória
+    button.addEventListener("mouseenter", () => setRandomRotation(button));
+    // Ao sair com o mouse: volta ao 0 grau
+    button.addEventListener("mouseleave", () => {
+      button.style.transform = "rotate(0deg)";
+    });
+  });
 
   // Inicialização
   initEventListeners();
@@ -99,15 +206,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const reader = new FileReader();
     reader.onload = function (e) {
-      try {
-        const newComicData = JSON.parse(e.target.result);
-        saveState();
-        state.comicData = newComicData;
-        updatePageInfo();
-        loadImages();
-      } catch (error) {
-        alert("Erro ao ler o arquivo JSON: " + error.message);
-      }
+      const newComicData = JSON.parse(e.target.result);
+      saveState();
+      state.comicData = newComicData;
+      updatePageSelector();
+      loadImages(); 
     };
     reader.readAsText(file);
   }
@@ -129,6 +232,9 @@ document.addEventListener("DOMContentLoaded", function () {
   function loadImages() {
     if (!state.comicData || Object.keys(state.imageFilesMap).length === 0)
       return;
+
+    // Define a página inicial
+    state.currentPageIndex = getPageFromUrl();
 
     state.images = [];
     let loadedCount = 0;
@@ -167,6 +273,7 @@ document.addEventListener("DOMContentLoaded", function () {
       };
       reader.readAsDataURL(file);
     });
+    updatePageSelector();
   }
 
   function checkAllImagesLoaded(loadedCount) {
@@ -412,6 +519,7 @@ document.addEventListener("DOMContentLoaded", function () {
     updatePanelsList();
     updatePropertiesForm();
     updateButtonStates();
+    updatePageSelector();
 
     elements.canvas.classList.toggle("canvas-moving", state.draggingPanel);
     // Posiciona o display de coordenadas
@@ -761,8 +869,8 @@ document.addEventListener("DOMContentLoaded", function () {
       const centerX = panel[0] + panel[2] / 2;
       const centerY = panel[1] + panel[3] / 2;
       const isNearCenter =
-        Math.abs(coords.x - centerX) < panel[2]/2 - HANDLE_SIZE &&
-        Math.abs(coords.y - centerY) < panel[3]/2 - HANDLE_SIZE;
+        Math.abs(coords.x - centerX) < panel[2] / 2 - HANDLE_SIZE &&
+        Math.abs(coords.y - centerY) < panel[3] / 2 - HANDLE_SIZE;
 
       if (isNearCenter) {
         state.draggingPanel = true;
@@ -1355,16 +1463,48 @@ document.addEventListener("DOMContentLoaded", function () {
     elements.nextPageBtn.disabled =
       state.currentPageIndex ===
       (state.comicData ? state.comicData.length - 1 : 0);
-    updatePageInfo();
+    updatePageSelector();
   }
 
-  function updatePageInfo() {
-    if (!state.comicData) {
-      elements.pageInfo.textContent = "Nenhum arquivo carregado";
-      return;
-    }
-    elements.pageInfo.textContent = `Página ${state.currentPageIndex + 1} de ${state.comicData.length
+  function updatePageSelector() {
+    if (!state.comicData) return;
+
+    elements.pageSelect.innerHTML = "";
+    state.comicData.forEach((page, index) => {
+      const option = document.createElement("option");
+      option.value = index;
+      option.textContent = `${index + 1}`;
+      option.selected = index === state.currentPageIndex;
+      elements.pageSelect.appendChild(option);
+    });
+
+    elements.pageInfo.textContent = `${state.currentPageIndex + 1} de ${state.comicData.length
       }`;
+    elements.pageTotal.textContent = `de ${state.comicData.length}`;
+  }
+
+  // Event listener para o seletor
+  elements.pageSelect.addEventListener("change", (e) => {
+    state.currentPageIndex = parseInt(e.target.value);
+    resetSelection();
+    displayCurrentPage();
+    updateUrl();
+  });
+
+  // Função para atualizar a URL
+  function updateUrl() {
+    if (state.comicData && state.comicData.length > 0) {
+      const newUrl = `${window.location.pathname}?page=${state.currentPageIndex + 1
+        }`;
+      window.history.pushState({}, "", newUrl);
+    }
+  }
+
+  // Função para ler parâmetro da URL
+  function getPageFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const pageParam = params.get("page");
+    return pageParam ? parseInt(pageParam) - 1 : 0;
   }
 
   function saveState() {
@@ -1493,4 +1633,13 @@ document.addEventListener("DOMContentLoaded", function () {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }
+
+  window.addEventListener("popstate", () => {
+    const newPage = getPageFromUrl();
+    if (newPage !== state.currentPageIndex) {
+      state.currentPageIndex = newPage;
+      resetSelection();
+      displayCurrentPage();
+    }
+  });
 });

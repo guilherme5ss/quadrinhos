@@ -1,3 +1,49 @@
+@import url("https://fonts.googleapis.com/css?family=Dekko|Lato:900|Rock+Salt");
+@import url("https://fonts.googleapis.com/css2?family=Bangers&display=swap");
+
+:root {
+  --button-size: 2.8rem;
+  /* Variável para controlar o tamanho do botão */
+}
+
+.file-input-group input,
+.file-input-group input {
+  font-family: "Dekko", cursive;
+  cursor: pointer;
+  width: 18.4rem;
+}
+
+/* file upload button */
+input[type="file"]::file-selector-button {
+  cursor: pointer;
+  margin: 0.5rem;
+  margin-bottom: 0.2rem;
+  padding: 0.2rem 0.5rem;
+  text-align: center;
+  font-family: "Dekko", cursive;
+  text-transform: uppercase;
+  font-size: 1.1rem;
+  font-weight: bold;
+  letter-spacing: 0.1rem;
+  background: url('data:image/svg+xml;utf8,<svg width="100" height="100" transform="rotate(25)" opacity="0.3" version="1.1" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><g  fill="%23250E17"><circle cx="25" cy="25" r="12.5"/><circle cx="75" cy="75" r="12.5"/><circle cx="75" cy="25" r="12.5"/><circle cx="25" cy="75" r="12.5"/></g></svg>'),
+    #ffcd28;
+  background-size: 0.6rem, 100%;
+  /* solid border */
+  border: 0.2rem solid #000;
+  /* position relative for the :before pseudo element */
+  position: relative;
+}
+
+/* file upload button hover state */
+input[type="file"]::file-selector-button:hover {
+  filter: brightness(0.9);
+}
+
+/* file upload button active state */
+input[type="file"]::file-selector-button:active {
+  filter: brightness(0.8);
+}
+
 body {
   font-family: Arial, sans-serif;
   margin: 0;
@@ -6,7 +52,6 @@ body {
 }
 
 .app-container {
-  max-width: 1200px;
   margin: 0 auto;
   background-color: white;
   padding: 20px;
@@ -40,41 +85,21 @@ h1 {
 }
 
 .controls input[type="file"],
-.controls button {
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: #f9f9f9;
-  cursor: pointer;
-}
-
-.controls button {
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  height: 36px;
-}
-
-.controls button:hover {
-  background-color: #45a049;
-}
-
-.controls button:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
-}
-
 .editor-container {
   display: flex;
   gap: 20px;
+  align-items: flex-start;
+  /* Para alinhar topo com topo */
 }
 
 .image-container {
-  flex: 2;
+  flex: 1;
+  /* fixa à esquerda */
   border: 1px solid #ddd;
   padding: 10px;
   background-color: #f9f9f9;
-  position: relative;
+  min-width: 600px;
+  max-height: 845px;
 }
 
 .image-nav {
@@ -85,16 +110,41 @@ h1 {
 }
 
 .image-nav button {
-  padding: 5px 10px;
-  background-color: #2196f3;
+  background: #2196f3;
+  border: 0.3rem solid #000;
+  padding: 0.3rem;
   color: white;
-  border: none;
-  border-radius: 4px;
+  font-weight: bold;
+  font-size: 1rem;
+  text-transform: uppercase;
   cursor: pointer;
+  box-shadow: 0.1rem 4px 0 #000, 8px 8px 0 rgba(0, 0, 0, 0.2);
+  user-select: none;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  letter-spacing: 2px;
+  position: relative;
+}
+
+.image-nav button::after {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  right: -8px;
+  bottom: -8px;
+  border: 3px solid #000;
+  z-index: -1;
+  transform: rotate(-2deg);
 }
 
 .image-nav button:hover {
-  background-color: #0b7dda;
+  transform: scale(1.1);
+  box-shadow: 6px 6px 0 #000, 10px 10px 0 rgba(0, 0, 0, 0.2);
+}
+
+.image-nav button:active {
+  transform: scale(0.95) translate(2px, 2px);
+  box-shadow: 2px 2px 0 #000, 4px 4px 0 rgba(0, 0, 0, 0.2);
 }
 
 .image-nav button:disabled {
@@ -111,6 +161,13 @@ h1 {
   display: block;
   margin: 0 auto;
   cursor: crosshair;
+  background: #000;
+  max-height: 800px;
+}
+
+.panel-sections {
+  display: flex;
+  gap: 20px;
 }
 
 .panel-list {
@@ -118,7 +175,7 @@ h1 {
   border: 1px solid #ddd;
   padding: 10px;
   background-color: #f9f9f9;
-  min-width: 250px;
+  min-width: 295px;
 }
 
 .panel-list ul {
@@ -152,7 +209,7 @@ h1 {
   border: 1px solid #ddd;
   padding: 10px;
   background-color: #f9f9f9;
-  min-width: 250px;
+  min-width: 295px;
 }
 
 .property-input {
@@ -212,20 +269,60 @@ h1 {
   background-color: #45a049;
 }
 
-/* ... (mantenha os estilos anteriores) ... */
-
 .action-buttons {
   display: flex;
-  gap: 8px;
+  gap: 0.5rem;
   flex-wrap: wrap;
+  margin-bottom: 0.1rem;
 }
 
 .action-buttons button {
-  padding: 8px 12px;
-  border: none;
-  border-radius: 4px;
+  border: 0 solid #e5e7eb;
+  box-sizing: border-box;
+  color: white;
+  display: flex;
+  font-family: ui-sans-serif, system-ui, -apple-system, system-ui, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  font-size: 1rem;
+  font-weight: 700;
+  justify-content: center;
+  line-height: 1.75rem;
+  padding: 0.25rem 1rem;
+  width: 3.5rem;
+  position: relative;
+  text-align: center;
+  text-decoration: none #000000 solid;
+  text-decoration-thickness: auto;
+  position: relative;
   cursor: pointer;
-  font-size: 14px;
+  transform: rotate(0deg);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.action-buttons button:focus {
+  outline: 0;
+}
+
+.action-buttons button:after {
+  content: "";
+  position: absolute;
+  border: 1px solid #000000;
+  bottom: 4px;
+  left: 4px;
+  width: calc(100% - 1px);
+  height: calc(100% - 1px);
+}
+
+.action-buttons button:hover:after {
+  bottom: 2px;
+  left: 2px;
+}
+
+#save-btn {
+  background-color: #4caf50;
 }
 
 #draw-mode-btn {
@@ -266,29 +363,140 @@ h1 {
   color: white;
 }
 
-/* ... (mantenha o restante dos estilos anteriores) ... */
 /* Efeito de blur */
-
 /* Destaque para o botão ativo */
-#blur-mode-btn {
-  background-color: #9c27b0;
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 4px;
+.eye-button {
+  --icon-size: calc(var(--button-size) * 0.5);
+  /* Tamanho proporcional do ícone */
+
+  background: #fff;
+  border: 0.2rem solid #000;
+  border-radius: 0.4rem;
+  padding: 0.2rem;
   cursor: pointer;
-  margin-left: 10px;
-  transition: all 0.3s ease;
-  float: right;
+  box-shadow: 0.3rem 0.3rem 0 #000;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s ease;
+  width: var(--button-size);
+  height: var(--button-size);
+  margin: 0.1rem;
+  margin-bottom: 0.4rem;
+  background: #a333cc;
+  color: white;
+  float: inline-end;
 }
 
-#blur-mode-btn:hover {
-  background-color: #7b1fa2;
+.eye-button:active {
+  transform: scale(0.95);
+  box-shadow: 0.1rem 0.1rem 0 #000;
 }
 
-#blur-mode-btn.active {
-  background-color: #7b1fa2;
-  box-shadow: 0 0 0 2px #e1bee7;
+.eye-icon {
+  width: var(--icon-size);
+  height: var(--icon-size);
+  transition: all 0.4s ease;
+}
+
+/* Container para posicionamento relativo dos elementos internos */
+.eye-container {
+  position: relative;
+  width: var(--icon-size);
+  height: var(--icon-size);
+}
+
+/* Animação de piscar mais realista */
+.blink {
+  animation: blinkAnim 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes blinkAnim {
+  0% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+
+  10% {
+    transform: scaleY(0.98);
+  }
+
+  20% {
+    transform: scaleY(0.1);
+    opacity: 0.8;
+  }
+
+  30% {
+    transform: scaleY(0.05);
+    opacity: 0.6;
+  }
+
+  40% {
+    transform: scaleY(0.01);
+    opacity: 0.4;
+  }
+
+  50% {
+    transform: scaleY(0);
+    opacity: 0.2;
+  }
+
+  60% {
+    transform: scaleY(0.05);
+    opacity: 0.4;
+  }
+
+  70% {
+    transform: scaleY(0.2);
+    opacity: 0.6;
+  }
+
+  80% {
+    transform: scaleY(0.8);
+    opacity: 0.8;
+  }
+
+  90% {
+    transform: scaleY(1.05);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.comic-effect {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-10deg);
+  font-size: calc(var(--icon-size) * 0.75);
+  font-weight: bold;
+  color: #5ccc33;
+  text-shadow: 2px 2px #000;
+  animation: pop 0.4s ease;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 8;
+}
+
+@keyframes pop {
+  0% {
+    transform: translate(-50%, -50%) scale(0) rotate(-10deg);
+    opacity: 0;
+  }
+
+  50% {
+    transform: translate(-50%, -50%) scale(1.2) rotate(-10deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(1) rotate(-10deg);
+    opacity: 0;
+  }
 }
 
 /* Melhorar legibilidade dos painéis com blur */
@@ -319,9 +527,9 @@ h1 {
 }
 
 .mouse-coords-display {
-  position: absolute;
+  float: right;
   bottom: 10px;
-  right: 10px;
+  left: 10px;
   background-color: rgba(0, 0, 0, 0.7);
   color: white;
   padding: 5px 10px;
@@ -357,4 +565,52 @@ h1 {
 
 #comic-canvas.canvas-moving:active {
   cursor: grabbing;
+}
+
+.comic-text {
+  font-family: "Comic Neue", "Bangers", "Impact", sans-serif;
+  /* Comic fonts */
+  font-weight: bold;
+  font-size: 2.2rem;
+  margin-left: 0.1rem;
+  margin-top: 0.6rem;
+  color: #5ccc33;
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+  /* Prevent line breaks */
+
+  /* Base text shadow for depth */
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8), 4px 4px 0 rgba(0, 0, 0, 0.5);
+}
+
+.comic-text::after {
+  content: attr(data-text);
+  /* Duplicate text */
+  position: absolute;
+  top: 0.1rem;
+  left: 0.1rem;
+  z-index: -1;
+  color: transparent;
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.3) 1px, transparent 1px),
+    radial-gradient(circle, rgba(0, 0, 0, 0.3) 1px, transparent 1px);
+  background-position: 0 0, 0.2rem 0.2rem;
+  background-size: 0.3rem 0.3rem;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  white-space: nowrap;
+}
+
+.page-selector {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 10px;
+}
+
+#page-select {
+  padding: 5px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
 }
