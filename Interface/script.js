@@ -210,7 +210,7 @@ document.addEventListener("DOMContentLoaded", function () {
       saveState();
       state.comicData = newComicData;
       updatePageSelector();
-      loadImages(); 
+      loadImages();
     };
     reader.readAsText(file);
   }
@@ -536,83 +536,87 @@ document.addEventListener("DOMContentLoaded", function () {
 
     panels.forEach((panel, i) => {
       const li = document.createElement("li");
-      li.textContent = `Painel ${i + 1}: ${panel[0]}x${panel[1]} (${panel[2]}×${panel[3]
-        })`;
+      li.draggable = true;
       li.dataset.index = i;
+      li.innerHTML = `
+            <span>Painel ${i + 1}: ${panel[0]}x${panel[1]} (${panel[2]}×${panel[3]
+        })</span>
+            <button class="delete-panel-btn">×</button>
+        `;
 
-      // Sincroniza com as seleções atuais
-      if (i === state.selectedPanelIndex) {
-        li.classList.add("active");
-      } else if (state.selectedPanelsForMerge.includes(i)) {
+      // Classes de seleção
+      if (i === state.selectedPanelIndex) li.classList.add("active");
+      if (state.selectedPanelsForMerge.includes(i))
         li.classList.add("merge-selected");
-      }
 
-      li.addEventListener("click", function (e) {
-        if (e.target.tagName === "BUTTON") return;
-
-        const index = parseInt(this.dataset.index);
-
-        // Simula o mesmo comportamento do clique na imagem
-        const mockEvent = {
-          ctrlKey: e.ctrlKey,
-          metaKey: e.metaKey,
-          shiftKey: e.shiftKey
-        };
-
-        // Atualiza o estado como se tivesse clicado na imagem
-        if (state.isMergeMode) {
-          if (mockEvent.ctrlKey || mockEvent.metaKey) {
-            const idx = state.selectedPanelsForMerge.indexOf(index);
-            if (idx === -1) {
-              state.selectedPanelsForMerge.push(index);
-            } else {
-              state.selectedPanelsForMerge.splice(idx, 1);
-            }
-          } else if (
-            mockEvent.shiftKey &&
-            state.selectedPanelsForMerge.length > 0
-          ) {
-            const lastSelected = Math.max(...state.selectedPanelsForMerge);
-            const start = Math.min(lastSelected, index);
-            const end = Math.max(lastSelected, index);
-            state.selectedPanelsForMerge = [];
-            for (let i = start; i <= end; i++) {
-              state.selectedPanelsForMerge.push(i);
-            }
-          } else {
-            state.selectedPanelsForMerge = [index];
-          }
-          state.selectedPanelIndex = -1;
-        } else {
-          state.selectedPanelIndex = index;
-          state.selectedPanelsForMerge = [];
+      // Evento de clique
+      li.addEventListener("click", (e) => {
+        if (!e.target.classList.contains("delete-panel-btn")) {
+          handlePanelSelection(i, e);
         }
-
-        displayCurrentPage();
       });
 
-      // Botões de mover (mantidos)
-      const moveUpBtn = document.createElement("button");
-      moveUpBtn.textContent = "↑";
-      moveUpBtn.className = "move-btn";
-      moveUpBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        movePanelUp(i);
+      // Botão de deletar
+      li.querySelector(".delete-panel-btn").addEventListener("click", () => {
+        deletePanel(i);
       });
 
-      const moveDownBtn = document.createElement("button");
-      moveDownBtn.textContent = "↓";
-      moveDownBtn.className = "move-btn";
-      moveDownBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        movePanelDown(i);
+      // Drag and Drop
+      li.addEventListener("dragstart", (e) => {
+        e.dataTransfer.setData("text/plain", i);
+        li.classList.add("dragging");
+        setTimeout(() => li.classList.add("invisible"), 0);
       });
 
-      li.prepend(moveDownBtn);
-      li.prepend(moveUpBtn);
+      li.addEventListener("dragend", () => {
+        li.classList.remove("dragging", "invisible");
+      });
+
+      li.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        const draggingItem = document.querySelector("#panels-list li.dragging");
+        if (draggingItem && draggingItem !== li) {
+          const rect = li.getBoundingClientRect();
+          const midY = rect.top + rect.height / 2;
+          if (e.clientY < midY) {
+            li.parentNode.insertBefore(draggingItem, li);
+          } else {
+            li.parentNode.insertBefore(draggingItem, li.nextSibling);
+          }
+        }
+      });
+
       elements.panelsList.appendChild(li);
     });
   }
+
+  // Adicione este evento ao container:
+  elements.panelsList.addEventListener("drop", (e) => {
+    e.preventDefault();
+    const fromIndex = parseInt(e.dataTransfer.getData("text/plain"));
+    const toItem = document
+      .elementFromPoint(e.clientX, e.clientY)
+      .closest("li");
+
+    if (toItem) {
+      const toIndex = parseInt(toItem.dataset.index);
+      if (fromIndex !== toIndex) {
+        saveState();
+        const panels = state.comicData[state.currentPageIndex].panels;
+        const [movedPanel] = panels.splice(fromIndex, 1);
+        panels.splice(toIndex, 0, movedPanel);
+
+        // Atualiza seleções
+        if (state.selectedPanelIndex === fromIndex)
+          state.selectedPanelIndex = toIndex;
+        state.selectedPanelsForMerge = state.selectedPanelsForMerge.map((i) =>
+          i === fromIndex ? toIndex : i
+        );
+
+        displayCurrentPage();
+      }
+    }
+  });
 
   function handlePanelSelection(index, event) {
     if (state.isMergeMode) {
@@ -1639,6 +1643,22 @@ document.addEventListener("DOMContentLoaded", function () {
     if (newPage !== state.currentPageIndex) {
       state.currentPageIndex = newPage;
       resetSelection();
+      displayCurrentPage();
+    }
+  });
+
+  elements.resetPanelsBtn = document.getElementById("reset-panels-btn");
+  elements.resetPanelsBtn.addEventListener("click", () => {
+    if (
+      confirm(
+        "Deseja remover todos os painéis desta página e capturar a imagem toda?"
+      )
+    ) {
+      saveState();
+      const pageData = state.comicData[state.currentPageIndex];
+      pageData.panels = [[0, 0, pageData.size[0], pageData.size[1]]];
+      state.selectedPanelIndex = 0;
+      state.selectedPanelsForMerge = [];
       displayCurrentPage();
     }
   });

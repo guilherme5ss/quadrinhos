@@ -186,22 +186,40 @@ h1 {
   margin-bottom: 10px;
 }
 
-.panel-list li {
+#panels-list li {
+  cursor: grab;
+  user-select: none;
+  position: relative;
   padding: 8px;
   margin-bottom: 5px;
   background-color: #e9e9e9;
   border-radius: 4px;
-  cursor: pointer;
   font-size: 14px;
 }
-
-.panel-list li:hover {
-  background-color: #ddd;
+#panels-list li.dragging {
+  opacity: 0.5;
+  background: #f0f0f0;
+}
+#panels-list li::before {
+  content: "≡";
+  position: absolute;
+  left: 8px;
+  color: #666;
 }
 
-.panel-list li.active {
-  background-color: #4caf50;
+.delete-panel-btn {
+  float: right;
+  background: #ff4444;
   color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  line-height: 20px;
+  cursor: pointer;
+}
+.delete-panel-btn:hover {
+  background: #cc0000;
 }
 
 .panel-properties {
@@ -255,18 +273,48 @@ h1 {
   background-color: #d32f2f;
 }
 
-#add-panel-btn {
-  width: 100%;
-  padding: 8px;
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  border-radius: 4px;
+#add-panel-btn,
+#reset-panels-btn {
+  display: inline-block;
+  padding: 0.2rem;
+  border: 4px solid black;
+  border-radius: 8px;
   cursor: pointer;
+  font-family: "Bangers", cursive;
+  font-size: 18px;
+  color: white;
+  text-shadow: 1px 1px 0 #000;
+  box-shadow: 3px 3px 0 black;
+  background-image: radial-gradient(
+      circle,
+      rgba(255, 255, 255, 0.2) 1px,
+      transparent 1px
+    ),
+    radial-gradient(circle, rgba(255, 255, 255, 0.2) 1px, transparent 1px);
+  background-size: 10px 10px;
+  background-position: 0 0, 5px 5px;
+  transition: all 0.2s ease-in-out;
 }
 
-#add-panel-btn:hover {
-  background-color: #45a049;
+#add-panel-btn {
+  width: 44%;
+  background-color: #5ccc33;
+  color: white;
+  float: left;
+}
+
+#reset-panels-btn {
+  background-color: #a333cc;
+  color: white;
+  width: 44%;
+  float: right;
+}
+
+#add-panel-btn:hover,
+#reset-panels-btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 black;
+  filter: brightness(1.05);
 }
 
 .action-buttons {
