@@ -195,11 +195,14 @@ h1 {
   background-color: #e9e9e9;
   border-radius: 4px;
   font-size: 14px;
+  padding-left: 24px;
 }
+
 #panels-list li.dragging {
   opacity: 0.5;
   background: #f0f0f0;
 }
+
 #panels-list li::before {
   content: "≡";
   position: absolute;
@@ -218,6 +221,7 @@ h1 {
   line-height: 20px;
   cursor: pointer;
 }
+
 .delete-panel-btn:hover {
   background: #cc0000;
 }
@@ -275,46 +279,75 @@ h1 {
 
 #add-panel-btn,
 #reset-panels-btn {
-  display: inline-block;
+  --icon-size: calc(var(--button-size) * 0.5);
+  /* Tamanho proporcional do ícone */
+  background: #fff;
+  border: 0.2rem solid #000;
+  border-radius: 0.4rem;
   padding: 0.2rem;
-  border: 4px solid black;
-  border-radius: 8px;
   cursor: pointer;
-  font-family: "Bangers", cursive;
-  font-size: 18px;
+  box-shadow: 0.3rem 0.3rem 0 #000;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s ease;
+  width: var(--button-size);
+  height: var(--button-size);
+  margin: 0.1rem;
+  margin-bottom: 0.4rem;
+  background: #a333cc;
   color: white;
-  text-shadow: 1px 1px 0 #000;
-  box-shadow: 3px 3px 0 black;
-  background-image: radial-gradient(
-      circle,
+  float: inline-end;
+  background-image: radial-gradient(circle,
       rgba(255, 255, 255, 0.2) 1px,
-      transparent 1px
-    ),
+      transparent 1px),
     radial-gradient(circle, rgba(255, 255, 255, 0.2) 1px, transparent 1px);
-  background-size: 10px 10px;
-  background-position: 0 0, 5px 5px;
-  transition: all 0.2s ease-in-out;
+  background-size: 8px 8px;
+  background-position: 0 0, 4px 4px;
 }
 
 #add-panel-btn {
-  width: 44%;
-  background-color: #5ccc33;
-  color: white;
   float: left;
+  background-color: #5ccc33;
 }
 
 #reset-panels-btn {
-  background-color: #a333cc;
-  color: white;
-  width: 44%;
   float: right;
+  background-color: #a333cc;
 }
 
 #add-panel-btn:hover,
 #reset-panels-btn:hover {
+  filter: brightness(1.1);
   transform: translate(-2px, -2px);
-  box-shadow: 5px 5px 0 black;
-  filter: brightness(1.05);
+  box-shadow: 6px 6px 0 #000;
+  transition: all 0.15s ease-in-out;
+}
+
+#add-panel-btn:active,
+#reset-panels-btn:active {
+  transform: scale(0.95);
+  box-shadow: 0.1rem 0.1rem 0 #000;
+}
+
+/* Opcional: tooltip explicativo */
+#reset-panels-btn::after {
+  content: "Captura toda página como painel único";
+  position: absolute;
+  background: #333;
+  color: white;
+  padding: 5px;
+  border-radius: 4px;
+  font-size: 12px;
+  visibility: hidden;
+  width: 150px;
+  bottom: 100%;
+  left: 50%;
+  transform: translate(-50%, 230%);
+}
+
+#reset-panels-btn:hover::after {
+  visibility: visible;
 }
 
 .action-buttons {
@@ -416,7 +449,6 @@ h1 {
 .eye-button {
   --icon-size: calc(var(--button-size) * 0.5);
   /* Tamanho proporcional do ícone */
-
   background: #fff;
   border: 0.2rem solid #000;
   border-radius: 0.4rem;
@@ -434,6 +466,19 @@ h1 {
   background: #a333cc;
   color: white;
   float: inline-end;
+  background-image: radial-gradient(circle,
+      rgba(255, 255, 255, 0.2) 1px,
+      transparent 1px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.2) 1px, transparent 1px);
+  background-size: 8px 8px;
+  background-position: 0 0, 4px 4px;
+}
+
+.eye-button:hover {
+  filter: brightness(1.1);
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #000;
+  transition: all 0.15s ease-in-out;
 }
 
 .eye-button:active {

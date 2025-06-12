@@ -527,6 +527,7 @@ document.addEventListener("DOMContentLoaded", function () {
     updateMouseCoordsDisplay();
   }
 
+  // Função atualizada para garantir estabilidade e correções
   function updatePanelsList() {
     if (!state.comicData || state.comicData.length <= state.currentPageIndex)
       return;
@@ -544,24 +545,20 @@ document.addEventListener("DOMContentLoaded", function () {
             <button class="delete-panel-btn">×</button>
         `;
 
-      // Classes de seleção
       if (i === state.selectedPanelIndex) li.classList.add("active");
       if (state.selectedPanelsForMerge.includes(i))
         li.classList.add("merge-selected");
 
-      // Evento de clique
       li.addEventListener("click", (e) => {
         if (!e.target.classList.contains("delete-panel-btn")) {
           handlePanelSelection(i, e);
         }
       });
 
-      // Botão de deletar
       li.querySelector(".delete-panel-btn").addEventListener("click", () => {
         deletePanel(i);
       });
 
-      // Drag and Drop
       li.addEventListener("dragstart", (e) => {
         e.dataTransfer.setData("text/plain", i);
         li.classList.add("dragging");
@@ -572,49 +569,41 @@ document.addEventListener("DOMContentLoaded", function () {
         li.classList.remove("dragging", "invisible");
       });
 
+      // Apenas permite o drop visual — lógica real está no evento "drop"
       li.addEventListener("dragover", (e) => {
         e.preventDefault();
-        const draggingItem = document.querySelector("#panels-list li.dragging");
-        if (draggingItem && draggingItem !== li) {
-          const rect = li.getBoundingClientRect();
-          const midY = rect.top + rect.height / 2;
-          if (e.clientY < midY) {
-            li.parentNode.insertBefore(draggingItem, li);
-          } else {
-            li.parentNode.insertBefore(draggingItem, li.nextSibling);
-          }
-        }
       });
 
       elements.panelsList.appendChild(li);
     });
   }
 
-  // Adicione este evento ao container:
   elements.panelsList.addEventListener("drop", (e) => {
     e.preventDefault();
+
     const fromIndex = parseInt(e.dataTransfer.getData("text/plain"));
-    const toItem = document
-      .elementFromPoint(e.clientX, e.clientY)
-      .closest("li");
+    const toLi = document.elementFromPoint(e.clientX, e.clientY)?.closest("li");
 
-    if (toItem) {
-      const toIndex = parseInt(toItem.dataset.index);
-      if (fromIndex !== toIndex) {
-        saveState();
-        const panels = state.comicData[state.currentPageIndex].panels;
-        const [movedPanel] = panels.splice(fromIndex, 1);
-        panels.splice(toIndex, 0, movedPanel);
+    if (!toLi) return;
+    const toIndex = parseInt(toLi.dataset.index);
 
-        // Atualiza seleções
-        if (state.selectedPanelIndex === fromIndex)
-          state.selectedPanelIndex = toIndex;
-        state.selectedPanelsForMerge = state.selectedPanelsForMerge.map((i) =>
-          i === fromIndex ? toIndex : i
-        );
+    if (fromIndex !== toIndex && !isNaN(fromIndex) && !isNaN(toIndex)) {
+      saveState();
+      const panels = state.comicData[state.currentPageIndex].panels;
+      const [moved] = panels.splice(fromIndex, 1);
+      panels.splice(toIndex, 0, moved);
 
-        displayCurrentPage();
-      }
+      // Atualiza seleções
+      if (state.selectedPanelIndex === fromIndex)
+        state.selectedPanelIndex = toIndex;
+      state.selectedPanelsForMerge = state.selectedPanelsForMerge.map((i) => {
+        if (i === fromIndex) return toIndex;
+        if (i > fromIndex && i <= toIndex) return i - 1;
+        if (i < fromIndex && i >= toIndex) return i + 1;
+        return i;
+      });
+
+      displayCurrentPage();
     }
   });
 
