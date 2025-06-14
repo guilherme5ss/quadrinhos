@@ -609,16 +609,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function handlePanelSelection(index, event) {
     if (state.isMergeMode) {
-      if (event.ctrlKey || event.metaKey) {
-        // Ctrl+Clique: alterna seleção
-        const idx = state.selectedPanelsForMerge.indexOf(index);
-        if (idx === -1) {
-          state.selectedPanelsForMerge.push(index);
-        } else {
-          state.selectedPanelsForMerge.splice(idx, 1);
-        }
-      } else if (event.shiftKey && state.selectedPanelsForMerge.length > 0) {
-        // Shift+Clique: seleção de intervalo
+      if (event.shiftKey && state.selectedPanelsForMerge.length > 0) {
         const lastSelected =
           state.selectedPanelsForMerge[state.selectedPanelsForMerge.length - 1];
         const start = Math.min(lastSelected, index);
@@ -628,8 +619,12 @@ document.addEventListener("DOMContentLoaded", function () {
           state.selectedPanelsForMerge.push(i);
         }
       } else {
-        // Clique normal: seleção única
-        state.selectedPanelsForMerge = [index];
+        const idx = state.selectedPanelsForMerge.indexOf(index);
+        if (idx === -1) {
+          state.selectedPanelsForMerge.push(index);
+        } else {
+          state.selectedPanelsForMerge.splice(idx, 1);
+        }
       }
 
       // Garante que pelo menos um painel está selecionado no modo merge
@@ -899,15 +894,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Atualiza a seleção conforme o modo
     if (clickedPanelIndex !== -1) {
       if (state.isMergeMode) {
-        // Lógica de seleção múltipla (mantida igual)
-        if (e.ctrlKey || e.metaKey) {
-          const index = state.selectedPanelsForMerge.indexOf(clickedPanelIndex);
-          if (index === -1) {
-            state.selectedPanelsForMerge.push(clickedPanelIndex);
-          } else {
-            state.selectedPanelsForMerge.splice(index, 1);
-          }
-        } else if (e.shiftKey && state.selectedPanelsForMerge.length > 0) {
+        if (e.shiftKey && state.selectedPanelsForMerge.length > 0) {
           const lastSelected = Math.max(...state.selectedPanelsForMerge);
           const start = Math.min(lastSelected, clickedPanelIndex);
           const end = Math.max(lastSelected, clickedPanelIndex);
@@ -916,8 +903,14 @@ document.addEventListener("DOMContentLoaded", function () {
             state.selectedPanelsForMerge.push(i);
           }
         } else {
-          state.selectedPanelsForMerge = [clickedPanelIndex];
+          const index = state.selectedPanelsForMerge.indexOf(clickedPanelIndex);
+          if (index === -1) {
+            state.selectedPanelsForMerge.push(clickedPanelIndex);
+          } else {
+            state.selectedPanelsForMerge.splice(index, 1);
+          }
         }
+
         state.selectedPanelIndex = -1;
       } else {
         // Seleção normal
@@ -1598,6 +1591,47 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+  function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      // Verifica se o foco não está em campos de entrada
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+
+      // Combinações com Ctrl/Command
+      const ctrlKey = e.ctrlKey || e.metaKey; // Command no Mac
+
+      // Atalhos
+      switch (e.key.toLowerCase()) {
+        case 'd':
+          elements.drawModeBtn.click();
+          break;
+        case 'm':
+          elements.mergePanelsBtn.click();
+          break;
+        case 'n':
+          elements.addPanelBtn.click();
+          break;
+        case 's':
+          if (ctrlKey) elements.saveBtn.click();
+          break;
+        case 'z':
+          if (ctrlKey) elements.undoBtn.click();
+          break;
+        case 'y':
+          if (ctrlKey) elements.redoBtn.click();
+          break;
+        case ',':
+          elements.prevPageBtn.click();
+          break;
+        case '.':
+          elements.nextPageBtn.click();
+          break;
+        case 'b':
+          elements.blurModeBtn.click();
+          break;
+      }
+    });
+  }
+
   function saveComicData() {
     if (!state.comicData) {
       alert("Nenhum dado para salvar");
@@ -1651,4 +1685,6 @@ document.addEventListener("DOMContentLoaded", function () {
       displayCurrentPage();
     }
   });
+
+  setupKeyboardShortcuts();
 });
