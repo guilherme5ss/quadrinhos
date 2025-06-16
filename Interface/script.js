@@ -1604,7 +1604,7 @@ document.addEventListener("DOMContentLoaded", function () {
         case 'd':
           elements.drawModeBtn.click();
           break;
-        case 'm':
+        case 'q':
           elements.mergePanelsBtn.click();
           break;
         case 'n':
@@ -1619,13 +1619,13 @@ document.addEventListener("DOMContentLoaded", function () {
         case 'y':
           if (ctrlKey) elements.redoBtn.click();
           break;
-        case ',':
+        case 'arrowleft':
           elements.prevPageBtn.click();
           break;
-        case '.':
+        case 'arrowright':
           elements.nextPageBtn.click();
           break;
-        case 'b':
+        case 'e':
           elements.blurModeBtn.click();
           break;
       }
