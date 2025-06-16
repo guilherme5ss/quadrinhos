@@ -1592,42 +1592,76 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function setupKeyboardShortcuts() {
+    // Mapeamento de atalhos
+    const shortcuts = [
+      { key: 'd', ctrl: false, shift: false, target: elements.drawModeBtn },
+      { key: 'q', ctrl: false, shift: false, target: elements.mergePanelsBtn },
+      { key: 'n', ctrl: false, shift: false, target: elements.addPanelBtn },
+      { key: 's', ctrl: true, shift: false, target: elements.saveBtn },
+      { key: 'z', ctrl: true, shift: false, target: elements.undoBtn },
+      { key: 'y', ctrl: true, shift: false, target: elements.redoBtn },
+      { key: 'arrowleft', ctrl: false, shift: false, target: elements.prevPageBtn },
+      { key: 'arrowright', ctrl: false, shift: false, target: elements.nextPageBtn },
+      { key: 'e', ctrl: false, shift: false, target: elements.blurModeBtn },
+      { key: 'f', ctrl: false, shift: false, target: elements.resetPanelsBtn},
+    ];
+
+    // Formata o título do botão
+    function formatTitle({ key, ctrl, shift }, labelElement) {
+      let prefix = '';
+      if (ctrl) prefix += 'Ctrl + ';
+      if (shift) prefix += 'Shift + ';
+      prefix += key.length === 1 ? key.toUpperCase() : key;
+
+      const label = labelElement.dataset.label || labelElement.innerText.trim();
+      return `${label} : ${prefix}`;
+    }
+
+    // Observa mudanças no texto do botão e atualiza o title
+    function syncTitleWithText(config) {
+      const { target } = config;
+      if (!target) return;
+
+      const updateTitle = () => {
+        target.title = formatTitle(config, target);
+      };
+
+      const observer = new MutationObserver(updateTitle);
+      observer.observe(target, { childList: true, subtree: true, characterData: true });
+
+      updateTitle();
+    }
+
+    shortcuts.forEach(syncTitleWithText);
+
+    // Normaliza a tecla para comparar com atalhos
+    function normalizeKey(key) {
+      return key.length === 1 ? key.toLowerCase() : key.toLowerCase(); // ArrowLeft etc.
+    }
+
+    // Listener de teclas
     document.addEventListener('keydown', (e) => {
-      // Verifica se o foco não está em campos de entrada
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
 
-      // Combinações com Ctrl/Command
-      const ctrlKey = e.ctrlKey || e.metaKey; // Command no Mac
+      const keyPressed = normalizeKey(e.key);
+      const ctrlKey = e.ctrlKey || e.metaKey;
+      const shiftKey = e.shiftKey;
 
-      // Atalhos
-      switch (e.key.toLowerCase()) {
-        case 'd':
-          elements.drawModeBtn.click();
+      for (const shortcut of shortcuts) {
+        const shortcutKey = normalizeKey(shortcut.key);
+
+        const matches =
+          shortcutKey === keyPressed &&
+          !!shortcut.ctrl === !!ctrlKey &&
+          !!shortcut.shift === !!shiftKey;
+
+        if (matches) {
+          if (shortcut.target) {
+            e.preventDefault(); // previne ações padrão (ex: Ctrl+S)
+            shortcut.target.click();
+          }
           break;
-        case 'q':
-          elements.mergePanelsBtn.click();
-          break;
-        case 'n':
-          elements.addPanelBtn.click();
-          break;
-        case 's':
-          if (ctrlKey) elements.saveBtn.click();
-          break;
-        case 'z':
-          if (ctrlKey) elements.undoBtn.click();
-          break;
-        case 'y':
-          if (ctrlKey) elements.redoBtn.click();
-          break;
-        case 'arrowleft':
-          elements.prevPageBtn.click();
-          break;
-        case 'arrowright':
-          elements.nextPageBtn.click();
-          break;
-        case 'e':
-          elements.blurModeBtn.click();
-          break;
+        }
       }
     });
   }
