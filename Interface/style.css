@@ -252,33 +252,15 @@ h1 {
 }
 
 #properties-form button {
-  margin-top: 10px;
-  padding: 8px 12px;
-  border: none;
-  border-radius: 4px;
   cursor: pointer;
 }
 
-#update-panel-btn {
-  background-color: #2196f3;
-  color: white;
-}
-
-#update-panel-btn:hover {
-  background-color: #0b7dda;
-}
-
-#delete-panel-btn {
-  background-color: #f44336;
-  color: white;
-}
-
-#delete-panel-btn:hover {
-  background-color: #d32f2f;
-}
 
 #add-panel-btn,
-#reset-panels-btn {
+#reset-panels-btn,
+#update-panel-btn,
+#delete-panel-btn,
+#zoom-panel-btn {
   --icon-size: calc(var(--button-size) * 0.5);
   /* Tamanho proporcional do ícone */
   background: #fff;
@@ -311,13 +293,43 @@ h1 {
   background-color: #5ccc33;
 }
 
+#update-panel-btn {
+  float: left;
+  background-color: #5ccc33;
+}
+
 #reset-panels-btn {
   float: right;
   background-color: #a333cc;
 }
 
+#delete-panel-btn{
+  float: right;
+  background-color: #d10000;
+}
+
+#zoom-panel-btn{
+  float: left;
+  transform: translateX(175%);
+  background-color: #d16900;
+}
+
+#zoom-panel-btn:hover {
+  filter: brightness(1.1);
+  transform: translateX(175%) translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #000;
+  transition: all 0.15s ease-in-out;
+}
+
+#zoom-panel-btn:active {
+  transform:  translateX(175%) scale(0.95);
+  box-shadow: 0.1rem 0.1rem 0 #000;
+}
+
 #add-panel-btn:hover,
-#reset-panels-btn:hover {
+#reset-panels-btn:hover,
+#update-panel-btn:hover,
+#delete-panel-btn:hover {
   filter: brightness(1.1);
   transform: translate(-2px, -2px);
   box-shadow: 6px 6px 0 #000;
@@ -325,7 +337,9 @@ h1 {
 }
 
 #add-panel-btn:active,
-#reset-panels-btn:active {
+#reset-panels-btn:active,
+#update-panel-btn:active,
+#delete-panel-btn:active {
   transform: scale(0.95);
   box-shadow: 0.1rem 0.1rem 0 #000;
 }
@@ -706,4 +720,37 @@ h1 {
   padding: 5px;
   border-radius: 4px;
   border: 1px solid #ddd;
+}
+
+#zoom-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+#zoomed-panel {
+    max-width: 90%;
+    max-height: 90%;
+    border: 2px solid white;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+
+#close-zoom {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: #f44336;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
 }

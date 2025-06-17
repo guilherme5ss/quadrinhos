@@ -146,7 +146,8 @@ document.addEventListener("DOMContentLoaded", function () {
     originalPanelState: null,
     draggingPanel: false,
     dragStartX: 0,
-    dragStartY: 0
+    dragStartY: 0,
+    zoomMode: false
   };
 
   const buttons = document.querySelectorAll(".action-buttons button");
@@ -525,6 +526,18 @@ document.addEventListener("DOMContentLoaded", function () {
     // Posiciona o display de coordenadas
     elements.mouseCoordsDisplay.style.display = "block";
     updateMouseCoordsDisplay();
+
+    if (state.zoomMode && state.selectedPanelIndex !== -1) {
+      const panel = state.comicData[state.currentPageIndex].panels[state.selectedPanelIndex];
+
+      // Destaca o painel com zoom
+      ctx.save();
+      ctx.strokeStyle = '#FF00FF';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([5, 5]);
+      ctx.strokeRect(panel[0], panel[1], panel[2], panel[3]);
+      ctx.restore();
+    }
   }
 
   // Função atualizada para garantir estabilidade e correções
@@ -1311,41 +1324,54 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function updatePropertiesForm() {
-    if (
-      state.selectedPanelIndex === -1 ||
-      !state.comicData ||
-      state.comicData.length <= state.currentPageIndex
-    ) {
-      elements.propertiesForm.innerHTML =
-        "<p>Selecione um painel para editar</p>";
+    if (state.selectedPanelIndex === -1 || !state.comicData || state.comicData.length <= state.currentPageIndex) {
+      elements.propertiesForm.innerHTML = '<p>Selecione um painel para editar</p>';
       return;
     }
 
-    const panel =
-      state.comicData[state.currentPageIndex].panels[state.selectedPanelIndex];
+    const panel = state.comicData[state.currentPageIndex].panels[state.selectedPanelIndex];
     const maxWidth = elements.canvas.width - panel[0];
     const maxHeight = elements.canvas.height - panel[1];
 
     elements.propertiesForm.innerHTML = `
-            <div class="property-input">
-                <label for="panel-x">Posição X:</label>
-                <input type="number" id="panel-x" value="${panel[0]}" min="0" max="${elements.canvas.width}">
-            </div>
-            <div class="property-input">
-                <label for="panel-y">Posição Y:</label>
-                <input type="number" id="panel-y" value="${panel[1]}" min="0" max="${elements.canvas.height}">
-            </div>
-            <div class="property-input">
-                <label for="panel-width">Largura:</label>
-                <input type="number" id="panel-width" value="${panel[2]}" min="1" max="${maxWidth}">
-            </div>
-            <div class="property-input">
-                <label for="panel-height">Altura:</label>
-                <input type="number" id="panel-height" value="${panel[3]}" min="1" max="${maxHeight}">
-            </div>
-            <button id="update-panel-btn">Atualizar Painel</button>
-            <button id="delete-panel-btn">Excluir Painel</button>
+                <div class="property-input">
+                  <label for="panel-x">Posição X:</label>
+                  <input type="number" id="panel-x" value="${panel[0]}" min="0" max="${elements.canvas.width}">
+                </div>
+                <div class="property-input">
+                  <label for="panel-y">Posição Y:</label>
+                  <input type="number" id="panel-y" value="${panel[1]}" min="0" max="${elements.canvas.height}">
+                </div>
+                <div class="property-input">
+                  <label for="panel-width">Largura:</label>
+                  <input type="number" id="panel-width" value="${panel[2]}" min="1" max="${maxWidth}">
+                </div>
+                <div class="property-input">
+                  <label for="panel-height">Altura:</label>
+                  <input type="number" id="panel-height" value="${panel[3]}" min="1" max="${maxHeight}">
+                </div>
+                <button id="update-panel-btn"><svg xmlns="http://www.w3.org/2000/svg" fill="none" width="24" height="24" viewBox="0 0 24 24" stroke-width="2"
+                    stroke="currentColor" className="size-6">
+                    <path strokeLinecap="round" strokeLinejoin="round"
+                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                  </svg></button>
+                <button id="delete-panel-btn"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" clip-rule="evenodd"
+                      d="M17 5V4C17 2.89543 16.1046 2 15 2H9C7.89543 2 7 2.89543 7 4V5H4C3.44772 5 3 5.44772 3 6C3 6.55228 3.44772 7 4 7H5V18C5 19.6569 6.34315 21 8 21H16C17.6569 21 19 19.6569 19 18V7H20C20.5523 7 21 6.55228 21 6C21 5.44772 20.5523 5 20 5H17ZM15 4H9V5H15V4ZM17 7H7V18C7 18.5523 7.44772 19 8 19H16C16.5523 19 17 18.5523 17 18V7Z"
+                      fill="currentColor" />
+                    <path d="M9 9H11V17H9V9Z" fill="currentColor" />
+                    <path d="M13 9H15V17H13V9Z" fill="currentColor" />
+                  </svg></button>
+                <button id="zoom-panel-btn"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" clip-rule="evenodd"
+                      d="M15.3431 15.2426C17.6863 12.8995 17.6863 9.1005 15.3431 6.75736C13 4.41421 9.20101 4.41421 6.85786 6.75736C4.51472 9.1005 4.51472 12.8995 6.85786 15.2426C9.20101 17.5858 13 17.5858 15.3431 15.2426ZM16.7574 5.34315C19.6425 8.22833 19.8633 12.769 17.4195 15.9075C17.4348 15.921 17.4498 15.9351 17.4645 15.9497L21.7071 20.1924C22.0976 20.5829 22.0976 21.2161 21.7071 21.6066C21.3166 21.9971 20.6834 21.9971 20.2929 21.6066L16.0503 17.364C16.0356 17.3493 16.0215 17.3343 16.008 17.319C12.8695 19.7628 8.32883 19.542 5.44365 16.6569C2.31946 13.5327 2.31946 8.46734 5.44365 5.34315C8.56785 2.21895 13.6332 2.21895 16.7574 5.34315ZM10.1005 7H12.1005V10H15.1005V12H12.1005V15H10.1005V12H7.10052V10H10.1005V7Z"
+                      fill="currentColor" />
+                  </svg></button>
         `;
+
+    document.getElementById('zoom-panel-btn').addEventListener('click', zoomSelectedPanel);
 
     document
       .getElementById("update-panel-btn")
@@ -1364,6 +1390,58 @@ document.addEventListener("DOMContentLoaded", function () {
       document.getElementById("panel-height").max =
         elements.canvas.height - newY;
     });
+  }
+
+  function zoomSelectedPanel() {
+    if (state.selectedPanelIndex === -1) return;
+
+    const pageData = state.comicData[state.currentPageIndex];
+    const panel = pageData.panels[state.selectedPanelIndex];
+    const img = state.images[state.currentPageIndex];
+
+    // Cria o container do zoom se não existir
+    let zoomContainer = document.getElementById('zoom-container');
+    if (!zoomContainer) {
+      zoomContainer = document.createElement('div');
+      zoomContainer.id = 'zoom-container';
+
+      const zoomedImg = document.createElement('img');
+      zoomedImg.id = 'zoomed-panel';
+
+      const closeBtn = document.createElement('button');
+      closeBtn.id = 'close-zoom';
+      closeBtn.textContent = 'Fechar';
+      closeBtn.addEventListener('click', () => {
+        zoomContainer.style.display = 'none';
+        state.zoomMode = false;
+      });
+
+      zoomContainer.appendChild(zoomedImg);
+      zoomContainer.appendChild(closeBtn);
+      document.body.appendChild(zoomContainer);
+    }
+
+    // Cria um canvas temporário para recortar o painel
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = panel[2];
+    tempCanvas.height = panel[3];
+    const tempCtx = tempCanvas.getContext('2d');
+
+    // Recorta a área do painel
+    tempCtx.drawImage(
+      elements.canvas,
+      panel[0], panel[1], panel[2], panel[3], // Source rect
+      0, 0, panel[2], panel[3]               // Destination rect
+    );
+
+    // Exibe no zoom
+    const zoomedImg = document.getElementById('zoomed-panel');
+    zoomedImg.src = tempCanvas.toDataURL();
+    zoomedImg.alt = `Painel ${state.selectedPanelIndex + 1} ampliado`;
+
+    // Mostra o container
+    zoomContainer.style.display = 'flex';
+    state.zoomMode = true;
   }
 
   function updatePanel() {
@@ -1603,7 +1681,7 @@ document.addEventListener("DOMContentLoaded", function () {
       { key: 'arrowleft', ctrl: false, shift: false, target: elements.prevPageBtn },
       { key: 'arrowright', ctrl: false, shift: false, target: elements.nextPageBtn },
       { key: 'e', ctrl: false, shift: false, target: elements.blurModeBtn },
-      { key: 'f', ctrl: false, shift: false, target: elements.resetPanelsBtn},
+      { key: 'f', ctrl: false, shift: false, target: elements.resetPanelsBtn },
     ];
 
     // Formata o título do botão
