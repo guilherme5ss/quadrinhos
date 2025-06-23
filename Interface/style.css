@@ -288,6 +288,64 @@ h1 {
   background-position: 0 0, 4px 4px;
 }
 
+#toggle-borders-btn,
+#toggle-blur-btn {
+  --icon-size: calc(var(--button-size) * 0.2);
+  width: calc(var(--button-size)*0.6);
+  height: calc(var(--button-size)*0.6);
+  background: #fff;
+  border: 0.2rem solid #000;
+  border-radius: 0.4rem;
+  padding: 0.2rem;
+  cursor: pointer;
+  box-shadow: 0.3rem 0.3rem 0 #000;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s ease;
+  margin: 0.1rem;
+  margin-bottom: 0.4rem;
+  background: #0068d1;
+  color: white;
+  background-image: radial-gradient(circle,
+      rgba(255, 255, 255, 0.2) 1px,
+      transparent 1px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.2) 1px, transparent 1px);
+  background-size: 8px 8px;
+  background-position: 0 0, 4px 4px;
+  transform: translateX(300%);
+}
+
+#toggle-borders-btn::after {
+  content: "Exibição Bordas";
+  position: absolute;
+  background: #333;
+  color: white;
+  padding: 5px;
+  border-radius: 4px;
+  font-size: 12px;
+  visibility: hidden;
+  width: 90px;
+  bottom: 100%;
+  left: 50%;
+  transform: translate(-25%, 230%);
+}
+
+#toggle-blur-btn::after {
+  content: "Zoom Blur";
+  position: absolute;
+  background: #333;
+  color: white;
+  padding: 5px;
+  border-radius: 4px;
+  font-size: 12px;
+  visibility: hidden;
+  width: 60px;
+  bottom: 100%;
+  left: 50%;
+  transform: translate(-50%, 230%);
+}
+
 #add-panel-btn {
   float: left;
   background-color: #5ccc33;
@@ -303,12 +361,12 @@ h1 {
   background-color: #a333cc;
 }
 
-#delete-panel-btn{
+#delete-panel-btn {
   float: right;
   background-color: #d10000;
 }
 
-#zoom-panel-btn{
+#zoom-panel-btn {
   float: left;
   transform: translateX(175%);
   background-color: #d16900;
@@ -321,10 +379,25 @@ h1 {
   transition: all 0.15s ease-in-out;
 }
 
+#toggle-borders-btn:hover,
+#toggle-blur-btn:hover {
+  filter: brightness(1.1);
+  transform: translateX(300%) translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #000;
+  transition: all 0.15s ease-in-out;
+}
+
 #zoom-panel-btn:active {
-  transform:  translateX(175%) scale(0.95);
+  transform: translateX(175%) scale(0.95);
   box-shadow: 0.1rem 0.1rem 0 #000;
 }
+
+#toggle-borders-btn:active,
+#toggle-blur-btn:active {
+  transform: translateX(300%) scale(0.95);
+  box-shadow: 0.1rem 0.1rem 0 #000;
+}
+
 
 #add-panel-btn:hover,
 #reset-panels-btn:hover,
@@ -344,6 +417,23 @@ h1 {
   box-shadow: 0.1rem 0.1rem 0 #000;
 }
 
+
+.zoom-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.zoom-controls button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+
 /* Opcional: tooltip explicativo */
 #reset-panels-btn::after {
   content: "Captura toda página como painel único";
@@ -360,7 +450,10 @@ h1 {
   transform: translate(-50%, 230%);
 }
 
-#reset-panels-btn:hover::after {
+#reset-panels-btn:hover::after,
+#blur-mode-btn:hover::after,
+#toggle-borders-btn:hover::after,
+#toggle-blur-btn:hover::after {
   visibility: visible;
 }
 
@@ -629,10 +722,6 @@ h1 {
   transform: translateX(-50%);
 }
 
-#blur-mode-btn:hover::after {
-  visibility: visible;
-}
-
 .mouse-coords-display {
   float: right;
   bottom: 10px;
@@ -686,7 +775,6 @@ h1 {
   display: inline-block;
   white-space: nowrap;
   /* Prevent line breaks */
-
   /* Base text shadow for depth */
   text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8), 4px 4px 0 rgba(0, 0, 0, 0.5);
 }
@@ -720,37 +808,4 @@ h1 {
   padding: 5px;
   border-radius: 4px;
   border: 1px solid #ddd;
-}
-
-#zoom-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.8);
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-#zoomed-panel {
-    max-width: 90%;
-    max-height: 90%;
-    border: 2px solid white;
-    box-shadow: 0 0 20px rgba(0,0,0,0.5);
-}
-
-#close-zoom {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background: #f44336;
-    color: white;
-    border: none;
-    padding: 10px 15px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 16px;
 }

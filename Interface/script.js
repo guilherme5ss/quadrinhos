@@ -147,7 +147,10 @@ document.addEventListener("DOMContentLoaded", function () {
     draggingPanel: false,
     dragStartX: 0,
     dragStartY: 0,
-    zoomMode: false
+    zoomMode: false,
+    zoomedPanelIndex: -1,
+    showPanelBorders: false,
+    panelBlur: true
   };
 
   const buttons = document.querySelectorAll(".action-buttons button");
@@ -517,6 +520,101 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
 
+    if (state.zoomMode && state.zoomedPanelIndex !== -1) {
+      const zoomedPanel = pageData.panels[state.zoomedPanelIndex];
+
+      const zoomCanvas = document.createElement('canvas');
+      zoomCanvas.width = zoomedPanel[2];
+      zoomCanvas.height = zoomedPanel[3];
+      const zoomCtx = zoomCanvas.getContext('2d');
+
+      const effectSize = state.effectSize || 8;
+
+      if (state.panelBlur && state.effectType === 'blur') {
+        zoomCtx.filter = `blur(${effectSize}px)`;
+        zoomCtx.drawImage(
+          img,
+          zoomedPanel[0], zoomedPanel[1], zoomedPanel[2], zoomedPanel[3],
+          0, 0, zoomedPanel[2], zoomedPanel[3]
+        );
+      } else if (state.panelBlur && state.effectType === 'pixelate') {
+        // Pixelate: desenha pequeno e escala para criar blocos
+        const pixelCanvas = document.createElement('canvas');
+        const pixelCtx = pixelCanvas.getContext('2d');
+
+        pixelCanvas.width = Math.floor(zoomedPanel[2] / effectSize);
+        pixelCanvas.height = Math.floor(zoomedPanel[3] / effectSize);
+
+        pixelCtx.imageSmoothingEnabled = false;
+
+        // Desenha versão reduzida
+        pixelCtx.drawImage(
+          img,
+          zoomedPanel[0], zoomedPanel[1], zoomedPanel[2], zoomedPanel[3],
+          0, 0, pixelCanvas.width, pixelCanvas.height
+        );
+
+        // Desenha versão pixelada ampliada no canvas principal
+        zoomCtx.imageSmoothingEnabled = false;
+        zoomCtx.drawImage(
+          pixelCanvas,
+          0, 0, pixelCanvas.width, pixelCanvas.height,
+          0, 0, zoomedPanel[2], zoomedPanel[3]
+        );
+      } else {
+        // Sem efeito: desenha normalmente
+        zoomCtx.filter = 'none';
+        zoomCtx.drawImage(
+          img,
+          zoomedPanel[0], zoomedPanel[1], zoomedPanel[2], zoomedPanel[3],
+          0, 0, zoomedPanel[2], zoomedPanel[3]
+        );
+      }
+
+      // Calcula proporção com margem
+      const marginRatio = 0.04;
+      const availableWidth = elements.canvas.width * (1 - 2 * marginRatio);
+      const availableHeight = elements.canvas.height * (1 - 2 * marginRatio);
+
+      const panelAspect = zoomedPanel[2] / zoomedPanel[3];
+      const canvasAspect = availableWidth / availableHeight;
+
+      let scaledWidth, scaledHeight;
+      if (panelAspect > canvasAspect) {
+        scaledWidth = availableWidth;
+        scaledHeight = availableWidth / panelAspect;
+      } else {
+        scaledHeight = availableHeight;
+        scaledWidth = availableHeight * panelAspect;
+      }
+
+      const centerX = (elements.canvas.width - scaledWidth) / 2;
+      const centerY = (elements.canvas.height - scaledHeight) / 2;
+
+      ctx.save();
+
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(0, 0, elements.canvas.width, elements.canvas.height);
+
+      ctx.drawImage(
+        zoomCanvas,
+        0, 0, zoomedPanel[2], zoomedPanel[3],
+        centerX, centerY, scaledWidth, scaledHeight
+      );
+
+      if (state.showPanelBorders) {
+        ctx.strokeStyle = '#FF0000';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(centerX, centerY, scaledWidth, scaledHeight);
+
+        ctx.fillStyle = '#FF0000';
+        ctx.font = 'bold 24px Arial';
+        ctx.fillText(`Painel ${state.zoomedPanelIndex + 1}`, centerX + 10, centerY + 30);
+      }
+
+      ctx.restore();
+    }
+
     updatePanelsList();
     updatePropertiesForm();
     updateButtonStates();
@@ -526,18 +624,6 @@ document.addEventListener("DOMContentLoaded", function () {
     // Posiciona o display de coordenadas
     elements.mouseCoordsDisplay.style.display = "block";
     updateMouseCoordsDisplay();
-
-    if (state.zoomMode && state.selectedPanelIndex !== -1) {
-      const panel = state.comicData[state.currentPageIndex].panels[state.selectedPanelIndex];
-
-      // Destaca o painel com zoom
-      ctx.save();
-      ctx.strokeStyle = '#FF00FF';
-      ctx.lineWidth = 3;
-      ctx.setLineDash([5, 5]);
-      ctx.strokeRect(panel[0], panel[1], panel[2], panel[3]);
-      ctx.restore();
-    }
   }
 
   // Função atualizada para garantir estabilidade e correções
@@ -1363,22 +1449,67 @@ document.addEventListener("DOMContentLoaded", function () {
                     <path d="M9 9H11V17H9V9Z" fill="currentColor" />
                     <path d="M13 9H15V17H13V9Z" fill="currentColor" />
                   </svg></button>
-                <button id="zoom-panel-btn"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                <button id="zoom-panel-btn">${state.zoomMode ? `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"
                     xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" clip-rule="evenodd"
+                      d="M15.3431 15.2426C17.6863 12.8995 17.6863 9.1005 15.3431 6.75736C13 4.41421 9.20101 4.41421 6.85786 6.75736C4.51472 9.1005 4.51472 12.8995 6.85786 15.2426C9.20101 17.5858 13 17.5858 15.3431 15.2426ZM16.7574 5.34315C19.6425 8.22833 19.8633 12.769 17.4195 15.9075C17.4348 15.921 17.4498 15.9351 17.4645 15.9497L21.7071 20.1924C22.0976 20.5829 22.0976 21.2161 21.7071 21.6066C21.3166 21.9971 20.6834 21.9971 20.2929 21.6066L16.0503 17.364C16.0356 17.3493 16.0215 17.3343 16.008 17.319C12.8695 19.7628 8.32883 19.542 5.44365 16.6569C2.31946 13.5327 2.31946 8.46734 5.44365 5.34315C8.56785 2.21895 13.6332 2.21895 16.7574 5.34315ZM7.10052 10V12H15.1005V10L7.10052 10Z"
+                      fill="currentColor" />
+                  </svg>`: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path fill-rule="evenodd" clip-rule="evenodd"
                       d="M15.3431 15.2426C17.6863 12.8995 17.6863 9.1005 15.3431 6.75736C13 4.41421 9.20101 4.41421 6.85786 6.75736C4.51472 9.1005 4.51472 12.8995 6.85786 15.2426C9.20101 17.5858 13 17.5858 15.3431 15.2426ZM16.7574 5.34315C19.6425 8.22833 19.8633 12.769 17.4195 15.9075C17.4348 15.921 17.4498 15.9351 17.4645 15.9497L21.7071 20.1924C22.0976 20.5829 22.0976 21.2161 21.7071 21.6066C21.3166 21.9971 20.6834 21.9971 20.2929 21.6066L16.0503 17.364C16.0356 17.3493 16.0215 17.3343 16.008 17.319C12.8695 19.7628 8.32883 19.542 5.44365 16.6569C2.31946 13.5327 2.31946 8.46734 5.44365 5.34315C8.56785 2.21895 13.6332 2.21895 16.7574 5.34315ZM10.1005 7H12.1005V10H15.1005V12H12.1005V15H10.1005V12H7.10052V10H10.1005V7Z"
                       fill="currentColor" />
-                  </svg></button>
+                  </svg>`}</button>
+                ${state.zoomMode ? `
+                <button id="toggle-borders-btn">${state.showPanelBorders ?
+                  `<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-dot" viewBox="0 0 16 16" id="Dot--Streamline-Bootstrap">
+                      <desc>
+                        Dot Streamline Icon: https://streamlinehq.com
+                      </desc>
+                      <path d="M8 9.5a1.5 1.5 0 1 0 0 -3 1.5 1.5 0 0 0 0 3" stroke-width="1"></path>
+                    </svg>`:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" id="Square--Streamline-Tabler">
+                      <desc>
+                        Square Streamline Icon: https://streamlinehq.com
+                      </desc>
+                      <path d="M3 5a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2H5a2 2 0 0 1 -2 -2z" stroke-width="2"></path>
+                    </svg>`
+                  }</button>
+                <button id="toggle-blur-btn">${state.panelBlur ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" id="Blur-Off--Streamline-Tabler">
+                    <desc>
+                      Blur Off Streamline Icon: https://streamlinehq.com
+                    </desc>
+                    <path d="M12 3v5m0 4v8" stroke-width="2"></path>
+                    <path d="M5.641 5.631A9 9 0 1 0 18.36 18.369m1.68 -2.318A9 9 0 0 0 7.966 3.953" stroke-width="2"></path>
+                    <path d="M16 12h5" stroke-width="2"></path>
+                    <path d="M13 9h7" stroke-width="2"></path>
+                    <path d="M12 6h6" stroke-width="2"></path>
+                    <path d="M12 18h6" stroke-width="2"></path>
+                    <path d="M12 15h3m4 0h1" stroke-width="2"></path>
+                    <path d="m3 3 18 18" stroke-width="2"></path>
+                  </svg>`:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" id="Blur--Streamline-Tabler">
+                    <desc>
+                      Blur Streamline Icon: https://streamlinehq.com
+                    </desc>
+                    <path d="M12 21a9.01 9.01 0 0 0 2.32 -0.302 9 9 0 0 0 1.74 -16.733A9 9 0 1 0 12 21z" stroke-width="2"></path>
+                    <path d="M12 3v17" stroke-width="2"></path>
+                    <path d="M12 12h9" stroke-width="2"></path>
+                    <path d="M12 9h8" stroke-width="2"></path>
+                    <path d="M12 6h6" stroke-width="2"></path>
+                    <path d="M12 18h6" stroke-width="2"></path>
+                    <path d="M12 15h8" stroke-width="2"></path>
+                  </svg>` }</button>
+                ` : ''}
+                </div>
         `;
 
-    document.getElementById('zoom-panel-btn').addEventListener('click', zoomSelectedPanel);
+    // Event listeners
+    document.getElementById('update-panel-btn').addEventListener('click', updatePanel);
+    document.getElementById('delete-panel-btn').addEventListener('click', deletePanel);
+    document.getElementById('zoom-panel-btn').addEventListener('click', toggleZoomPanel);
 
-    document
-      .getElementById("update-panel-btn")
-      .addEventListener("click", updatePanel);
-    document
-      .getElementById("delete-panel-btn")
-      .addEventListener("click", deletePanel);
+    if (state.zoomMode) {
+      document.getElementById('toggle-borders-btn').addEventListener('click', togglePanelBorders);
+      document.getElementById('toggle-blur-btn').addEventListener('click', togglePanelBlur);
+    }
 
     document.getElementById("panel-x").addEventListener("change", function () {
       const newX = parseInt(this.value);
@@ -1392,57 +1523,33 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  function zoomSelectedPanel() {
-    if (state.selectedPanelIndex === -1) return;
+  function toggleZoomPanel() {
+    state.zoomMode = !state.zoomMode;
 
-    const pageData = state.comicData[state.currentPageIndex];
-    const panel = pageData.panels[state.selectedPanelIndex];
-    const img = state.images[state.currentPageIndex];
-
-    // Cria o container do zoom se não existir
-    let zoomContainer = document.getElementById('zoom-container');
-    if (!zoomContainer) {
-      zoomContainer = document.createElement('div');
-      zoomContainer.id = 'zoom-container';
-
-      const zoomedImg = document.createElement('img');
-      zoomedImg.id = 'zoomed-panel';
-
-      const closeBtn = document.createElement('button');
-      closeBtn.id = 'close-zoom';
-      closeBtn.textContent = 'Fechar';
-      closeBtn.addEventListener('click', () => {
-        zoomContainer.style.display = 'none';
-        state.zoomMode = false;
-      });
-
-      zoomContainer.appendChild(zoomedImg);
-      zoomContainer.appendChild(closeBtn);
-      document.body.appendChild(zoomContainer);
+    if (state.zoomMode) {
+      state.zoomedPanelIndex = state.selectedPanelIndex;
+      // Reset configurações do zoom
+      state.showPanelBorders = state.showPanelBorders;
+      state.panelBlur = state.effectMode;
+    } else {
+      state.zoomedPanelIndex = -1;
     }
 
-    // Cria um canvas temporário para recortar o painel
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = panel[2];
-    tempCanvas.height = panel[3];
-    const tempCtx = tempCanvas.getContext('2d');
-
-    // Recorta a área do painel
-    tempCtx.drawImage(
-      elements.canvas,
-      panel[0], panel[1], panel[2], panel[3], // Source rect
-      0, 0, panel[2], panel[3]               // Destination rect
-    );
-
-    // Exibe no zoom
-    const zoomedImg = document.getElementById('zoomed-panel');
-    zoomedImg.src = tempCanvas.toDataURL();
-    zoomedImg.alt = `Painel ${state.selectedPanelIndex + 1} ampliado`;
-
-    // Mostra o container
-    zoomContainer.style.display = 'flex';
-    state.zoomMode = true;
+    displayCurrentPage();
+    updatePropertiesForm();
   }
+
+  function togglePanelBorders() {
+    state.showPanelBorders = !state.showPanelBorders;
+    displayCurrentPage();
+    updatePropertiesForm();
+  }
+
+  function togglePanelBlur() {
+    state.panelBlur = !state.panelBlur;
+    displayCurrentPage();
+  }
+
 
   function updatePanel() {
     if (
