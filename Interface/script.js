@@ -735,54 +735,9 @@ document.addEventListener("DOMContentLoaded", function () {
     } else {
       // Modo normal: seleção única
       state.selectedPanelIndex = index;
+      state.zoomedPanelIndex = state.selectedPanelIndex;
       state.selectedPanelsForMerge = [];
     }
-
-    displayCurrentPage();
-  }
-
-  function movePanelUp(index) {
-    if (index <= 0) return;
-
-    saveState();
-    const panels = state.comicData[state.currentPageIndex].panels;
-    [panels[index], panels[index - 1]] = [panels[index - 1], panels[index]];
-
-    // Ajustar seleções
-    if (state.selectedPanelIndex === index) {
-      state.selectedPanelIndex = index - 1;
-    } else if (state.selectedPanelIndex === index - 1) {
-      state.selectedPanelIndex = index;
-    }
-
-    state.selectedPanelsForMerge = state.selectedPanelsForMerge.map((i) => {
-      if (i === index) return index - 1;
-      if (i === index - 1) return index;
-      return i;
-    });
-
-    displayCurrentPage();
-  }
-
-  function movePanelDown(index) {
-    const panels = state.comicData[state.currentPageIndex].panels;
-    if (index >= panels.length - 1) return;
-
-    saveState();
-    [panels[index], panels[index + 1]] = [panels[index + 1], panels[index]];
-
-    // Ajustar seleções
-    if (state.selectedPanelIndex === index) {
-      state.selectedPanelIndex = index + 1;
-    } else if (state.selectedPanelIndex === index + 1) {
-      state.selectedPanelIndex = index;
-    }
-
-    state.selectedPanelsForMerge = state.selectedPanelsForMerge.map((i) => {
-      if (i === index) return index + 1;
-      if (i === index + 1) return index;
-      return i;
-    });
 
     displayCurrentPage();
   }
@@ -1449,7 +1404,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     <path d="M9 9H11V17H9V9Z" fill="currentColor" />
                     <path d="M13 9H15V17H13V9Z" fill="currentColor" />
                   </svg></button>
-                <button id="zoom-panel-btn">${state.zoomMode ? `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                <button id="zoom-panel-btn" data-label="Zoom Painel">${state.zoomMode ? `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"
                     xmlns="http://www.w3.org/2000/svg">
                     <path fill-rule="evenodd" clip-rule="evenodd"
                       d="M15.3431 15.2426C17.6863 12.8995 17.6863 9.1005 15.3431 6.75736C13 4.41421 9.20101 4.41421 6.85786 6.75736C4.51472 9.1005 4.51472 12.8995 6.85786 15.2426C9.20101 17.5858 13 17.5858 15.3431 15.2426ZM16.7574 5.34315C19.6425 8.22833 19.8633 12.769 17.4195 15.9075C17.4348 15.921 17.4498 15.9351 17.4645 15.9497L21.7071 20.1924C22.0976 20.5829 22.0976 21.2161 21.7071 21.6066C21.3166 21.9971 20.6834 21.9971 20.2929 21.6066L16.0503 17.364C16.0356 17.3493 16.0215 17.3343 16.008 17.319C12.8695 19.7628 8.32883 19.542 5.44365 16.6569C2.31946 13.5327 2.31946 8.46734 5.44365 5.34315C8.56785 2.21895 13.6332 2.21895 16.7574 5.34315ZM7.10052 10V12H15.1005V10L7.10052 10Z"
@@ -1460,19 +1415,17 @@ document.addEventListener("DOMContentLoaded", function () {
                       fill="currentColor" />
                   </svg>`}</button>
                 ${state.zoomMode ? `
-                <button id="toggle-borders-btn">${state.showPanelBorders ?
-                  `<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-dot" viewBox="0 0 16 16" id="Dot--Streamline-Bootstrap">
-                      <desc>
-                        Dot Streamline Icon: https://streamlinehq.com
-                      </desc>
-                      <path d="M8 9.5a1.5 1.5 0 1 0 0 -3 1.5 1.5 0 0 0 0 3" stroke-width="1"></path>
-                    </svg>`:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" id="Square--Streamline-Tabler">
-                      <desc>
-                        Square Streamline Icon: https://streamlinehq.com
-                      </desc>
-                      <path d="M3 5a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2H5a2 2 0 0 1 -2 -2z" stroke-width="2"></path>
-                    </svg>`
-                  }</button>
+                <button id="toggle-borders-btn">${state.showPanelBorders ? `<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-dot" viewBox="0 0 16 16" id="Dot--Streamline-Bootstrap">
+                              <desc>
+                                Dot Streamline Icon: https://streamlinehq.com
+                              </desc>
+                              <path d="M8 9.5a1.5 1.5 0 1 0 0 -3 1.5 1.5 0 0 0 0 3" stroke-width="1"></path>
+                            </svg>`: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" id="Square--Streamline-Tabler">
+                              <desc>
+                                Square Streamline Icon: https://streamlinehq.com
+                              </desc>
+                              <path d="M3 5a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2H5a2 2 0 0 1 -2 -2z" stroke-width="2"></path>
+                            </svg>`}</button>
                 <button id="toggle-blur-btn">${state.panelBlur ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" id="Blur-Off--Streamline-Tabler">
                     <desc>
                       Blur Off Streamline Icon: https://streamlinehq.com
@@ -1485,7 +1438,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     <path d="M12 18h6" stroke-width="2"></path>
                     <path d="M12 15h3m4 0h1" stroke-width="2"></path>
                     <path d="m3 3 18 18" stroke-width="2"></path>
-                  </svg>`:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" id="Blur--Streamline-Tabler">
+                  </svg>`: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" id="Blur--Streamline-Tabler">
                     <desc>
                       Blur Streamline Icon: https://streamlinehq.com
                     </desc>
@@ -1758,13 +1711,6 @@ document.addEventListener("DOMContentLoaded", function () {
     displayCurrentPage(); // Redesenha o canvas com o efeito
   }
 
-  function applyBlurEffect() {
-    const panels = document.querySelectorAll("#panels-list li");
-    panels.forEach((panel) => {
-      panel.classList.toggle("blur-effect", state.isBlurMode);
-    });
-  }
-
   function handleKeyboardShortcuts(e) {
     // Desfazer/Refazer
     if (e.ctrlKey && e.key === "z") {
@@ -1789,9 +1735,20 @@ document.addEventListener("DOMContentLoaded", function () {
       { key: 'arrowright', ctrl: false, shift: false, target: elements.nextPageBtn },
       { key: 'e', ctrl: false, shift: false, target: elements.blurModeBtn },
       { key: 'f', ctrl: false, shift: false, target: elements.resetPanelsBtn },
+      {
+        key: 'a',
+        ctrl: false,
+        shift: false,
+        get target() {
+          return document.getElementById('zoom-panel-btn');
+        },
+      },
     ];
 
-    // Formata o título do botão
+    function resolveTarget(shortcut) {
+      return typeof shortcut.target === 'function' ? shortcut.target() : shortcut.target;
+    }
+
     function formatTitle({ key, ctrl, shift }, labelElement) {
       let prefix = '';
       if (ctrl) prefix += 'Ctrl + ';
@@ -1804,7 +1761,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Observa mudanças no texto do botão e atualiza o title
     function syncTitleWithText(config) {
-      const { target } = config;
+      const target = resolveTarget(config);
       if (!target) return;
 
       const updateTitle = () => {
@@ -1821,7 +1778,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Normaliza a tecla para comparar com atalhos
     function normalizeKey(key) {
-      return key.length === 1 ? key.toLowerCase() : key.toLowerCase(); // ArrowLeft etc.
+      return key.toLowerCase();
     }
 
     // Listener de teclas
@@ -1841,15 +1798,19 @@ document.addEventListener("DOMContentLoaded", function () {
           !!shortcut.shift === !!shiftKey;
 
         if (matches) {
-          if (shortcut.target) {
-            e.preventDefault(); // previne ações padrão (ex: Ctrl+S)
-            shortcut.target.click();
+          const target = resolveTarget(shortcut);
+          if (target) {
+            e.preventDefault();
+            target.click();
+          } else {
+            console.warn(`Atalho "${shortcut.key}" detectado, mas botão não encontrado.`);
           }
           break;
         }
       }
     });
   }
+
 
   function saveComicData() {
     if (!state.comicData) {
