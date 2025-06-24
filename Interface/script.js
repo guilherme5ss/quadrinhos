@@ -1577,7 +1577,11 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function resetSelection() {
-    state.selectedPanelIndex = -1;
+    if(state.zoomMode === true){
+      state.selectedPanelIndex = 0;
+    }else{
+      state.selectedPanelIndex = -1;
+    }
     state.selectedPanelsForMerge = [];
     state.isDrawing = false;
   }
