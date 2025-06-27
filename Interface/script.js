@@ -1739,14 +1739,9 @@ document.addEventListener("DOMContentLoaded", function () {
       { key: 'arrowright', ctrl: false, shift: false, target: elements.nextPageBtn },
       { key: 'e', ctrl: false, shift: false, target: elements.blurModeBtn },
       { key: 'f', ctrl: false, shift: false, target: elements.resetPanelsBtn },
-      {
-        key: 'a',
-        ctrl: false,
-        shift: false,
-        get target() {
-          return document.getElementById('zoom-panel-btn');
-        },
-      },
+      { key: 'a', ctrl: false, shift: false, get target() { return document.getElementById('zoom-panel-btn');},},
+      { key: 'e', ctrl: false, shift: true, get target() { return document.getElementById('toggle-blur-btn');},},
+      { key: 'b', ctrl: false, shift: false, get target() { return document.getElementById('toggle-borders-btn');},},
     ];
 
     function resolveTarget(shortcut) {
