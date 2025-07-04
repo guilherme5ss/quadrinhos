@@ -49,6 +49,9 @@ const closedEye = document.getElementById("closedEye");
 
 let eyeOpen = true;
 
+let trimPreviewRects = [];
+let currentTolerance = 5
+
 button.addEventListener("click", () => {
   // animação de piscar
   if (eyeOpen) {
@@ -118,7 +121,13 @@ document.addEventListener("DOMContentLoaded", function () {
     nextPageBtn: document.getElementById("next-page-btn"),
     blurModeBtn: document.getElementById("blur-mode-btn"),
     mouseCoordsDisplay: document.getElementById("mouse-coords"),
-    pageSelect: document.getElementById("page-select")
+    pageSelect: document.getElementById("page-select"),
+    trimBordersBtn: document.getElementById('trim-borders-btn'),
+    trimControls: document.getElementById('trim-controls'),
+    toleranceSlider: document.getElementById('tolerance-slider'),
+    toleranceValue: document.getElementById('tolerance-value'),
+    confirmTrimBtn: document.getElementById('confirm-trim-btn'),
+    cancelTrimBtn: document.getElementById('cancel-trim-btn')
   };
 
   const ctx = elements.canvas.getContext("2d");
@@ -150,7 +159,8 @@ document.addEventListener("DOMContentLoaded", function () {
     zoomMode: false,
     zoomedPanelIndex: -1,
     showPanelBorders: false,
-    panelBlur: true
+    panelBlur: true,
+    isTrimBordersActive: false
   };
 
   const buttons = document.querySelectorAll(".action-buttons button");
@@ -199,6 +209,11 @@ document.addEventListener("DOMContentLoaded", function () {
     elements.canvas.addEventListener("mousemove", handleCanvasMouseMove);
     elements.canvas.addEventListener("mouseup", handleCanvasMouseUp);
     elements.canvas.addEventListener("mouseout", handleCanvasMouseOut);
+
+    elements.trimBordersBtn.addEventListener('click', startTrimBorders);
+    elements.toleranceSlider.addEventListener('input', updateTolerance);
+    elements.confirmTrimBtn.addEventListener('click', confirmTrim);
+    elements.cancelTrimBtn.addEventListener('click', cancelTrim);
 
     // Atalhos de teclado
     document.addEventListener("keydown", handleKeyboardShortcuts);
@@ -1562,6 +1577,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (state.currentPageIndex > 0) {
       state.currentPageIndex--;
       resetSelection();
+      trimDisplayPageFix();
       displayCurrentPage();
       updateNavButtons();
     }
@@ -1571,19 +1587,28 @@ document.addEventListener("DOMContentLoaded", function () {
     if (state.currentPageIndex < state.comicData.length - 1) {
       state.currentPageIndex++;
       resetSelection();
+      trimDisplayPageFix();
       displayCurrentPage();
       updateNavButtons();
     }
   }
 
   function resetSelection() {
-    if(state.zoomMode === true){
+    if (state.zoomMode === true) {
       state.selectedPanelIndex = 0;
-    }else{
+    } else {
       state.selectedPanelIndex = -1;
     }
     state.selectedPanelsForMerge = [];
     state.isDrawing = false;
+  }
+
+  function trimDisplayPageFix() {
+    if (state.isTrimBordersActive === true) {
+      requestAnimationFrame(() => {
+        startTrimBorders();
+      });
+    }
   }
 
   function updateNavButtons() {
@@ -1606,8 +1631,7 @@ document.addEventListener("DOMContentLoaded", function () {
       elements.pageSelect.appendChild(option);
     });
 
-    elements.pageInfo.textContent = `${state.currentPageIndex + 1} de ${state.comicData.length
-      }`;
+    elements.pageInfo.textContent = `${state.currentPageIndex + 1} de ${state.comicData.length}`;
     elements.pageTotal.textContent = `de ${state.comicData.length}`;
   }
 
@@ -1739,9 +1763,9 @@ document.addEventListener("DOMContentLoaded", function () {
       { key: 'arrowright', ctrl: false, shift: false, target: elements.nextPageBtn },
       { key: 'e', ctrl: false, shift: false, target: elements.blurModeBtn },
       { key: 'f', ctrl: false, shift: false, target: elements.resetPanelsBtn },
-      { key: 'a', ctrl: false, shift: false, get target() { return document.getElementById('zoom-panel-btn');},},
-      { key: 'e', ctrl: false, shift: true, get target() { return document.getElementById('toggle-blur-btn');},},
-      { key: 'b', ctrl: false, shift: false, get target() { return document.getElementById('toggle-borders-btn');},},
+      { key: 'a', ctrl: false, shift: false, get target() { return document.getElementById('zoom-panel-btn'); }, },
+      { key: 'e', ctrl: false, shift: true, get target() { return document.getElementById('toggle-blur-btn'); }, },
+      { key: 'b', ctrl: false, shift: false, get target() { return document.getElementById('toggle-borders-btn'); }, },
     ];
 
     function resolveTarget(shortcut) {
@@ -1810,6 +1834,204 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  // Função principal
+  function startTrimBorders() {
+    if (!state.comicData || state.comicData.length <= state.currentPageIndex) return;
+
+    // Esconde outros controles
+    elements.trimControls.style.display = 'block';
+
+    state.isTrimBordersActive = true;
+
+    // Analisa todos os painéis da página atual
+    analyzePanelsForTrimming();
+  }
+
+  function analyzePanelsForTrimming() {
+    const pageData = state.comicData[state.currentPageIndex];
+    const img = state.images[state.currentPageIndex];
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+
+    trimPreviewRects = [];
+
+    pageData.panels.forEach(panel => {
+      const [x, y, width, height] = panel;
+      const imageData = ctx.getImageData(x, y, width, height);
+
+      // Analisa bordas
+      const { left, top, right, bottom } = findNonWhiteBorders(imageData, width, height);
+
+      // Área que será removida (para preview)
+      trimPreviewRects.push({
+        panelIndex: pageData.panels.indexOf(panel),
+        rects: [
+          { x, y, width: left, height }, // Left border
+          { x, y, width, height: top }, // Top border
+          { x: x + width - right, y, width: right, height }, // Right border
+          { x, y: y + height - bottom, width, height: bottom } // Bottom border
+        ]
+      });
+    });
+
+    displayTrimPreviews();
+  }
+
+  function findNonWhiteBorders(imageData, width, height) {
+    const tolerance = currentTolerance / 100;
+    const data = imageData.data;
+
+    // Função auxiliar para verificar se um pixel é considerado branco
+    const isWhite = (index) => {
+      const r = data[index];
+      const g = data[index + 1];
+      const b = data[index + 2];
+      // Considera quase branco (com tolerância)
+      return (r >= 255 * (1 - tolerance)) &&
+        (g >= 255 * (1 - tolerance)) &&
+        (b >= 255 * (1 - tolerance));
+    };
+
+    // Analisa borda esquerda
+    let left = 0;
+    for (; left < width; left++) {
+      let allWhite = true;
+      for (let y = 0; y < height; y++) {
+        const index = (y * width + left) * 4;
+        if (!isWhite(index)) {
+          allWhite = false;
+          break;
+        }
+      }
+      if (!allWhite) break;
+    }
+
+    // Analisa borda superior (similar para right e bottom)
+    let top = 0;
+    for (; top < height; top++) {
+      let allWhite = true;
+      for (let x = 0; x < width; x++) {
+        const index = (top * width + x) * 4;
+        if (!isWhite(index)) {
+          allWhite = false;
+          break;
+        }
+      }
+      if (!allWhite) break;
+    }
+
+    // Analisa borda direita
+    let right = 0;
+    for (; right < width; right++) {
+      let allWhite = true;
+      for (let y = 0; y < height; y++) {
+        const index = (y * width + (width - 1 - right)) * 4;
+        if (!isWhite(index)) {
+          allWhite = false;
+          break;
+        }
+      }
+      if (!allWhite) break;
+    }
+
+    // Analisa borda inferior
+    let bottom = 0;
+    for (; bottom < height; bottom++) {
+      let allWhite = true;
+      for (let x = 0; x < width; x++) {
+        const index = ((height - 1 - bottom) * width + x) * 4;
+        if (!isWhite(index)) {
+          allWhite = false;
+          break;
+        }
+      }
+      if (!allWhite) break;
+    }
+
+    return { left, top, right, bottom };
+  }
+
+  function displayTrimPreviews() {
+    // Remove previews antigos
+    document.querySelectorAll('.trim-preview').forEach(el => el.remove());
+
+    // Obtém a posição e dimensões do canvas
+    const canvasRect = elements.canvas.getBoundingClientRect();
+    const canvasStyle = window.getComputedStyle(elements.canvas);
+    const canvasBorderLeft = parseInt(canvasStyle.borderLeftWidth) || 0;
+    const canvasBorderTop = parseInt(canvasStyle.borderTopWidth) || 0;
+
+    // Adiciona novos previews
+    trimPreviewRects.forEach(panelData => {
+      panelData.rects.forEach(rect => {
+        if (rect.width > 0 && rect.height > 0) {
+          const preview = document.createElement('div');
+          preview.className = 'trim-preview';
+
+          // Calcula posição relativa ao canvas com bordas
+          const left = canvasRect.left + canvasBorderLeft + rect.x * (canvasRect.width / elements.canvas.width);
+          const top = canvasRect.top + canvasBorderTop + rect.y * (canvasRect.height / elements.canvas.height);
+
+          // Calcula dimensões proporcionais
+          const width = rect.width * (canvasRect.width / elements.canvas.width);
+          const height = rect.height * (canvasRect.height / elements.canvas.height);
+
+          // Aplica os estilos posicionando absolutamente na página
+          preview.style.position = 'absolute';
+          preview.style.left = `${left}px`;
+          preview.style.top = `${top}px`;
+          preview.style.width = `${width}px`;
+          preview.style.height = `${height}px`;
+          preview.style.pointerEvents = 'none'; // Permite interação com elementos abaixo
+
+          document.body.appendChild(preview);
+        }
+      });
+    });
+  }
+
+  function updateTolerance() {
+    currentTolerance = parseInt(elements.toleranceSlider.value);
+    elements.toleranceValue.textContent = `${currentTolerance}%`;
+    analyzePanelsForTrimming();
+  }
+
+  function confirmTrim() {
+    const pageData = state.comicData[state.currentPageIndex];
+
+    trimPreviewRects.forEach(panelData => {
+      const panel = pageData.panels[panelData.panelIndex];
+      const [x, y, width, height] = panel;
+      const { left, top, right, bottom } = {
+        left: panelData.rects[0].width,
+        top: panelData.rects[1].height,
+        right: panelData.rects[2].width,
+        bottom: panelData.rects[3].height
+      };
+
+      // Aplica o recorte
+      panel[0] = x + left;
+      panel[1] = y + top;
+      panel[2] = width - left - right;
+      panel[3] = height - top - bottom;
+    });
+
+    //cancelTrim();
+    document.querySelectorAll('.trim-preview').forEach(el => el.remove());
+    trimPreviewRects = [];
+    saveState();
+    displayCurrentPage();
+  }
+
+  function cancelTrim() {
+    document.querySelectorAll('.trim-preview').forEach(el => el.remove());
+    elements.trimControls.style.display = 'none';
+    state.isTrimBordersActive = false;
+    trimPreviewRects = [];
+  }
 
   function saveComicData() {
     if (!state.comicData) {

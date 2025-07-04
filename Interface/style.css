@@ -152,6 +152,31 @@ h1 {
   cursor: not-allowed;
 }
 
+.trim-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    padding: 10px;
+    background: #f5f5f5;
+    border-radius: 4px;
+}
+
+.trim-preview {
+    position: absolute;
+    background-color: rgba(255, 0, 0, 0.3);
+    pointer-events: none;
+}
+
+#confirm-trim-btn{
+  background: green;
+  margin-right: 0.6rem;
+}
+
+#cancel-trim-btn{
+  background: red;
+}
+
 #page-info {
   font-weight: bold;
 }
