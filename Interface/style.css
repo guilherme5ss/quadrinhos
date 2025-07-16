@@ -1,9 +1,12 @@
 @import url("https://fonts.googleapis.com/css?family=Dekko|Lato:900|Rock+Salt");
 @import url("https://fonts.googleapis.com/css2?family=Bangers&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins&display=swap');
 
 :root {
   --button-size: 2.8rem;
   /* Variável para controlar o tamanho do botão */
+  --text-shadow: -1px -1px 0 #000, 0 -1px 0 #000, 1px -1px 0 #000, -1px  0 0 #000, 1px  0 0 #000, -1px  1px 0 #000, 0  1px 0 #000, 1px  1px 0 #000, -2px -2px 0 #000, -1px -2px 0 #000, 0 -2px 0 #000, 1px -2px 0 #000, 2px -2px 0 #000, 2px -1px 0 #000, 2px  0 0 #000, 2px  1px 0 #000, 2px  2px 0 #000, 1px  2px 0 #000, 0  2px 0 #000, -1px  2px 0 #000, -2px  2px 0 #000, -2px  1px 0 #000, -2px  0 0 #000, -2px -1px 0 #000, -3px -3px 0 #000, -2px -3px 0 #000, 0 -3px 0 #000, 2px -3px 0 #000, 3px -3px 0 #000, 3px -2px 0 #000, 3px  0 0 #000, 3px  2px 0 #000, 3px  3px 0 #000, 2px  3px 0 #000, 0  3px 0 #000, -2px  3px 0 #000, -3px  3px 0 #000, -3px  2px 0 #000, -3px  0 0 #000, -3px -2px 0 #000, -3px -3px 0 #000, -1px -3px 0 #000, 0 -3px 0 #000, 1px -3px 0 #000, 3px -3px 0 #000, 3px -1px 0 #000, 3px  0 0 #000, 3px  1px 0 #000, 3px  3px 0 #000, 1px  3px 0 #000, 0  3px 0 #000, -1px  3px 0 #000, -3px  3px 0 #000, -3px  1px 0 #000, -3px  0 0 #000, -3px -1px 0 #000, -3px 4px 0 #000, 0px 4px 0 #000, 3px 4px 0 #000, -3px 5px 0 #000, 0px 5px 0 #000, 3px 5px 0 #000, -3px 6px 0 #000, 0px 6px 0 #000, 3px 6px 0 #000, -3px 7px 0 #000, 0px 7px 0 #000, 3px 7px 0 #000, -3px 8px 0 #000, 0px 8px 0 #000, 3px 8px 0 #000;
 }
 
 .file-input-group input,
@@ -42,6 +45,14 @@ input[type="file"]::file-selector-button:hover {
 /* file upload button active state */
 input[type="file"]::file-selector-button:active {
   filter: brightness(0.8);
+}
+
+.json-selector-dropdown {
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    background-color: white;
+    margin-left: 10px;
 }
 
 body {
@@ -152,28 +163,93 @@ h1 {
   cursor: not-allowed;
 }
 
-.trim-controls {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 10px;
-    padding: 10px;
-    background: #f5f5f5;
-    border-radius: 4px;
+.range {
+  padding: 0px;
+  margin: 0px;
+  box-sizing: border-box;
+  font-family: 'Poppins', sans-serif;
+  perspective: 800px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.range input {
+  appearance: none;
+  width: 150px;
+  height: 4px;
+  border-radius: 5px;
+  background-color: #2196f3;
+  outline: none;
+}
+
+.range input::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: #1271be;
+}
+
+.range span {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 800;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  position: relative;
+  margin-left: 0;
+  width: 46px;
+  height: 42px;
+  background-color: #dddddd;
+  color: #fff;
+  border-radius: 30px;
+  text-align: center;
+  line-height: 40px;
+  letter-spacing: -0.05em;
+  text-shadow: var(--text-shadow);
+  white-space: nowrap;
+  padding: 0;
+  margin: 0;
+}
+
+.range span:before {
+  content: '';
+  position: absolute;
+  border-right: 9px solid transparent;
+  border-left: 9px solid transparent;
+  border-bottom: 12px solid #dddddd;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%) rotate(-90deg);
+}
+
+#trim-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f5f5f5;
+  border-radius: 4px;
 }
 
 .trim-preview {
-    position: absolute;
-    background-color: rgba(255, 0, 0, 0.3);
-    pointer-events: none;
+  position: absolute;
+  background-color: rgba(255, 0, 0, 0.3);
+  pointer-events: none;
 }
 
-#confirm-trim-btn{
+#confirm-trim-btn, #cancel-trim-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+#confirm-trim-btn {
   background: green;
-  margin-right: 0.6rem;
+  margin-right: 0.3rem;
 }
 
-#cancel-trim-btn{
+#cancel-trim-btn {
   background: red;
 }
 

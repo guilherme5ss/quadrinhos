@@ -127,7 +127,11 @@ document.addEventListener("DOMContentLoaded", function () {
     toleranceSlider: document.getElementById('tolerance-slider'),
     toleranceValue: document.getElementById('tolerance-value'),
     confirmTrimBtn: document.getElementById('confirm-trim-btn'),
-    cancelTrimBtn: document.getElementById('cancel-trim-btn')
+    cancelTrimBtn: document.getElementById('cancel-trim-btn'),
+    importFolder: document.getElementById('import-folder'),
+    jsonSelector: document.getElementById('json-selector'),
+    jsonSelectorContainer: document.getElementById('json-selector-container'),
+    pageInfo: document.getElementById('page-info'),
   };
 
   const ctx = elements.canvas.getContext("2d");
@@ -160,7 +164,9 @@ document.addEventListener("DOMContentLoaded", function () {
     zoomedPanelIndex: -1,
     showPanelBorders: false,
     panelBlur: true,
-    isTrimBordersActive: false
+    isTrimBordersActive: false,
+    availableJsonFiles: [],
+    currentJsonIndex: 0
   };
 
   const buttons = document.querySelectorAll(".action-buttons button");
@@ -184,15 +190,6 @@ document.addEventListener("DOMContentLoaded", function () {
   initEventListeners();
 
   function initEventListeners() {
-    // Carregar JSON
-    elements.jsonInput.addEventListener("change", handleJsonInput);
-
-    // Carregar diretório de imagens
-    elements.imageDirectoryInput.addEventListener(
-      "change",
-      handleImageDirectoryInput
-    );
-
     // Botões de controle
     elements.drawModeBtn.addEventListener("click", toggleDrawMode);
     elements.mergePanelsBtn.addEventListener("click", toggleMergeMode);
@@ -215,37 +212,89 @@ document.addEventListener("DOMContentLoaded", function () {
     elements.confirmTrimBtn.addEventListener('click', confirmTrim);
     elements.cancelTrimBtn.addEventListener('click', cancelTrim);
 
+    elements.importFolder.addEventListener('change', handleFolderImport);
+    elements.jsonSelector.addEventListener('change', handleJsonChange);
+
     // Atalhos de teclado
     document.addEventListener("keydown", handleKeyboardShortcuts);
   }
 
-  function handleJsonInput(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      const newComicData = JSON.parse(e.target.result);
-      saveState();
-      state.comicData = newComicData;
-      updatePageSelector();
-      loadImages();
-    };
-    reader.readAsText(file);
-  }
-
-  function handleImageDirectoryInput(e) {
+  async function handleFolderImport(e) {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
-    state.imageFilesMap = {};
-    files.forEach((file) => {
-      state.imageFilesMap[file.name] = file;
+    // Separa arquivos JSON e imagens
+    const jsonFiles = files.filter(file => file.name.endsWith('.json'))
+      .sort((a, b) => b.lastModified - a.lastModified);
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+
+    if (jsonFiles.length === 0) {
+      alert('Nenhum arquivo JSON encontrado na pasta!');
+      return;
+    }
+
+    // Atualiza a lista de JSONs disponíveis
+    state.availableJsonFiles = jsonFiles;
+    state.currentJsonIndex = 0;
+
+    // Preenche o dropdown
+    elements.jsonSelector.innerHTML = '';
+    jsonFiles.forEach((file, index) => {
+      const option = document.createElement('option');
+      option.value = index;
+      option.textContent = `${file.name} (${new Date(file.lastModified).toLocaleString()})`;
+      elements.jsonSelector.appendChild(option);
     });
 
-    if (state.comicData) {
+    // Mostra o seletor se houver múltiplos JSONs
+    elements.jsonSelectorContainer.style.display = jsonFiles.length > 1 ? 'block' : 'none';
+
+    // Carrega o JSON mais recente por padrão
+    await loadSelectedJson(jsonFiles[0], imageFiles);
+  }
+
+  async function loadSelectedJson(jsonFile, imageFiles) {
+    try {
+      const jsonData = await readJsonFile(jsonFile);
+      state.comicData = jsonData;
+      state.imageFilesMap = {};
+
+      // Mapeia imagens por nome
+      imageFiles.forEach(file => {
+        state.imageFilesMap[file.name] = file;
+      });
+
+      // Reseta para a primeira página
+      state.currentPageIndex = 0;
+
+      // Atualiza a interface
       loadImages();
+    } catch (error) {
+      console.error('Erro ao ler arquivo JSON:', error);
+      //alert(`Erro ao ler arquivo JSON: ${error.message}`);
     }
+  }
+
+  function handleJsonChange(e) {
+    state.currentJsonIndex = parseInt(e.target.value);
+    const selectedJson = state.availableJsonFiles[state.currentJsonIndex];
+    const imageFiles = Object.values(state.imageFilesMap);
+    loadSelectedJson(selectedJson, imageFiles);
+  }
+
+  function readJsonFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          resolve(JSON.parse(e.target.result));
+        } catch (err) {
+          reject(err);
+        }
+      };
+      reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+      reader.readAsText(file);
+    });
   }
 
   function loadImages() {
@@ -1839,7 +1888,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!state.comicData || state.comicData.length <= state.currentPageIndex) return;
 
     // Esconde outros controles
-    elements.trimControls.style.display = 'block';
+    elements.trimControls.style.display = 'inline-flex';
 
     state.isTrimBordersActive = true;
 
@@ -2040,8 +2089,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Obtém o nome do arquivo original do input
-    const originalFileName =
-      elements.jsonInput.files[0]?.name || "comic_panels";
+    const originalFileName = state.availableJsonFiles[state.currentJsonIndex]?.name || "comic_panels";
 
     // Remove a extensão .json se existir
     const fileNameWithoutExt = originalFileName.replace(/\.json$/i, "");

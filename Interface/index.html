@@ -31,8 +31,10 @@
                 fill="currentColor" />
             </svg></button>
           <div id="trim-controls" style="display: none;">
-            <input type="range" id="tolerance-slider" min="0" max="99" value="25">
-            <span id="tolerance-value">25%</span>
+            <div class="range">
+              <input type="range" id="tolerance-slider" min="0" max="99" value="40">
+              <span id="tolerance-value">40%</span>
+            </div>
             <button id="confirm-trim-btn"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
                 fill="currentColor" class="bi bi-check" viewBox="0 0 16 16">
                 <path
@@ -91,12 +93,12 @@
             </div>
           </div>
           <div class="file-input-group">
-            <label for="json-input">Arquivo JSON:</label>
-            <input type="file" id="json-input" accept=".json">
-          </div>
-          <div class="file-input-group">
-            <label for="image-directory">Diretório de Imagens:</label>
-            <input type="file" id="image-directory" accept="image/*" webkitdirectory directory multiple>
+            <label for="import-folder">Importar Pasta:</label>
+            <input type="file" id="import-folder" webkitdirectory directory multiple>
+            <div id="json-selector-container" style="display: none; margin-top: 8px;">
+              <label for="json-selector">Selecionar JSON:</label>
+              <select id="json-selector" class="json-selector-dropdown"></select>
+            </div>
           </div>
 
           <div class="panel-sections">
